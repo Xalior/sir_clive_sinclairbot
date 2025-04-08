@@ -1,33 +1,27 @@
+interface ChannelFilterList {
+    message_begins: string[];
+    message_contains: string[];
+}
 
-// Fake enums, that don't hurt transpiled typescript as much!
+interface ChannelFilters {
+    required: ChannelFilterList;
+    banned: ChannelFilterList;
+}
+
+interface ChannelFilterActions {
+    delete: Boolean;
+    message: string|undefined;
+    reply: string|undefined;
+    expires: number|undefined;
+    emoji: string|undefined;
+}
 
 interface ChannelData {
     channel_id: string;
-    filters: {
-        required: {
-            message_begins: string[] | null,
-            message_contains: string[] | null,
-        }
-        banned: {
-            message_begins: string[] | null,
-            message_contains: string[] | null,
-        }
-    }
-    pass: {
-        delete: Boolean;
-        message: string|null;
-        reply: string|null;
-        expires: number|null;
-        emoji: string|null;
-    },
-    fail: {
-        delete: Boolean;
-        message: string|null;
-        reply: string|null;
-        expires: number|null;
-        emoji: string|null;
-    }
+    filters: ChannelFilters
+    pass: ChannelFilterActions,
+    fail: ChannelFilterActions
 }
 
 
-export { ChannelData }
+export { ChannelData, ChannelFilters, ChannelFilterList, ChannelFilterActions }

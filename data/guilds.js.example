@@ -1,0 +1,106 @@
+const guilds = {
+    // Our first server
+    "123123123123123123123": {
+        guild_id: "123123123123123123123",
+        log_channel_id: "3421123123123123123123",
+        command_prefix: "!",
+        channels: [
+            // #sales
+            {
+                channel_id: "111111111111",
+                filters: {
+                    required: {
+                        message_begins: ["wanted:", "for sale:"],
+                    }
+                },
+                pass: {
+                    emoji: "🫰",
+                },
+                fail: {
+                    delete: true,
+                    message: "To use the **#<CHANNEL_NAME>** room (on the \"<GUILD_NAME>\" server) please prefix with either \"wanted:\" or \"for sale:\", eg:\n\n" +
+                        "wanted: a sense of purpose\n" +
+                        "for sale: one conscience, hardly used\n\n",
+                    log: true
+                }
+            },
+
+            // #links-only
+            {
+                channel_id: "222222222222",
+                filters: {
+                    required: {
+                        message_contains: ["http:", "https:"],
+                    }
+                },
+                pass: {
+                    emoji: "🌐"
+                },
+                fail: {
+                    message: "To use the **#<CHANNEL_NAME>** room (on the \"<GUILD_NAME>\" server) please include a link to your content, eg:\n\n" +
+                        "```Hey, check out my new super relevent video here friends: https://zxn.gg/ontopic```\n" +
+                        "If you wish to discuss the links content please contact the creator directly or use a relevant room.\n\n" +
+                        "Thank you for your cooperation!",
+                    delete: true,
+                    log: true
+                }
+            },
+
+
+            // #auto-expiring
+            {
+                channel_id: "33333333333333",
+                filters: {
+                    required: {
+                        message_contains: ["http:", "https:"],
+                    }
+                },
+                pass: {
+                    emoji: "⏲️",
+                    expires: 10
+                },
+                fail: {
+                    message: "To use the **#<CHANNEL_NAME>** room (on the \"<GUILD_NAME>\" server) please include a link to your content, eg:\n\n" +
+                        "```Hey, check out my new super relevent video here friends: https://zxn.gg/ontopic```\n" +
+                        "If you wish to discuss the promoted content please contact the creator directly or use a relevant room.\n\n" +
+                        "Thank you for your cooperation!",
+                    delete: true,
+                    log: true
+                }
+            },
+
+            // #only-logging
+            {
+                channel_id: "4444444444444444",
+                filters: {
+                    required: {
+                        message_contains: ["ignore"],
+                    }
+                },
+                fail: {
+                    log: true
+                },
+            },
+
+            // #admin
+            {
+                channel_id: "555555555555",
+                filters: {
+                    all: true
+                },
+                pass: {
+                    plugin: {
+                        "com.xalior.ping": true,
+                        "org.xalior.example": {
+                            "message": "Hello from the example plugin!"
+                        }
+                    },
+                    log: true
+                }
+            }
+        ]
+    },
+    // RINSE AND REPEAT, ONE OBJECT PER GUILD...
+};
+
+export { guilds };

@@ -1,19 +1,16 @@
 // bot.ts
 import { env } from "./env"
 // @ts-ignore
-import { guilds } from "../data/guilds.js"
+import { guilds } from "../../data/guilds.js"
 import { GatewayIntentBits, Message, OmitPartialGroupDMChannel, TextChannel} from 'discord.js';
 import { client, DiscordMessage } from './discord';
 import { GuildData } from "./guild";
 import { filter } from "./filters";
 import {action} from "./actions";
-
 let client_id: string | undefined;
 
 client.once('ready', () => {
-    console.log(`Logged in as ${client.user?.tag}!`);
-
-    // console.log(client.user, client);
+    console.info(`Discord Connection Established -- user: ${client.user?.tag}!`);
 
     client_id = client.user?.id;
 });
@@ -22,8 +19,10 @@ client.on('messageCreate', async (discord_message:OmitPartialGroupDMChannel<Mess
     // Don't respond to automated messages
     if (discord_message.author.bot) return;
 
+    // Filter message by server (guild)
     if(guilds[discord_message.guildId]) {
 
+        // Create our own state-managed version of the incoming message
         const incoming = new DiscordMessage(client, guilds[discord_message.guildId], discord_message);
 
         // Per Channel
@@ -40,7 +39,7 @@ client.on('messageCreate', async (discord_message:OmitPartialGroupDMChannel<Mess
                 // Anything can fail in the action, to we best wrap it...
                 try {
                     // All filtering done, now deal with results - which filters depends on the results of both sets...
-                    await action(incoming, (required_filters && !banned_filters) ? guild_channel.pass : guild_channel.fail);
+                    await action(incoming, (guild_channel.filters?.all ||  (required_filters && !banned_filters)) ? guild_channel.pass : guild_channel.fail);
                 }
                 catch (error: any) {
                     try {

@@ -6,6 +6,7 @@ interface ChannelFilterList {
 interface ChannelFilters {
     required?: ChannelFilterList;
     banned?: ChannelFilterList;
+    all?: boolean;
 }
 
 interface ChannelFilterActions {
@@ -14,6 +15,7 @@ interface ChannelFilterActions {
     expires?: number;
     emoji?: string;
     log?: boolean;
+    plugin?: Array<string>
     delete?: boolean;
 }
 
@@ -22,6 +24,7 @@ class ChannelFilterActionReport {
     reply: string | undefined = undefined;
     expires: number | undefined = undefined;
     emoji: string | undefined = undefined;
+    plugins_triggered: string = "";
     delete: boolean = false;
 }
 

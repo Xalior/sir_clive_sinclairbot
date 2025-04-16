@@ -7,6 +7,7 @@ function filter_expand(filters:string[]) {
 
 function filter(incoming: DiscordMessage, filters: ChannelFilterList | undefined):boolean {
     if(filters) {
+
         const message_text = incoming.message.content.toLowerCase();
 
         if (filters.message_begins && filters.message_begins.some(begins => message_text.startsWith(begins))) {

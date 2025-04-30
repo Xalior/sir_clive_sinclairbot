@@ -5,10 +5,10 @@
   "main": "dist/src/bot.js",
   "scripts": {
     "preinstall": "npx only-allow pnpm",
-    "build": "npx tsc",
-    "test": "npx wdio run ./wdio.conf.ts",
-    "dev": "npx tsc && node --env-file-if-exists=.env dist/src/bot.js",
-    "start": "node --env-file-if-exists=.env dist/src/bot.js",
+    "build": "tsc --noEmit",
+    "test": "wdio run ./wdio.conf.ts",
+    "dev": "tsx watch --watch='src/**/*.ts' src/bot.ts",
+    "start": "tsx src/bot.ts",
     "clean": "rm -rf dist/*",
     "wdio": "wdio run ./wdio.conf.ts"
   },
@@ -41,6 +41,7 @@
     "openai": "^4.91.1",
     "package-lock.json": "^1.0.0",
     "ts-node": "^10.9.2",
+    "tsx": "^4.19.4",
     "typescript": "^5.8.2",
     "zod": "^3.24.2"
   },

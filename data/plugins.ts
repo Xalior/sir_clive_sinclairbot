@@ -1,10 +1,10 @@
-import {PingPlugin} from "../plugins/ping";
-import {ExamplePlugin} from "../plugins/exampleplugin";
-import {CommandsPlugin} from "../plugins/commands";
+import {PingPlugin} from "../plugins/org.xalior.ping/ping";
+import {Example} from "../plugins/org.xalior.example/example";
+import {CommandsPlugin} from "../plugins/org.xalior.commands/commands";
 
 const plugins = [
     CommandsPlugin,
-    ExamplePlugin,
+    Example,
     PingPlugin
 ];
 export { plugins };

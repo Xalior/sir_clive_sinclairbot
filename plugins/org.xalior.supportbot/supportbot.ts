@@ -1,6 +1,6 @@
 // supportbot.ts
-import { Plugin } from '../src/plugin';
-import { DiscordMessage } from "../src/discord";
+import { Plugin } from '../../src/plugin';
+import { DiscordMessage } from "../../src/discord";
 
 export class SupportbotPlugin extends Plugin {
     public name: string = "SupportbotPlugin";

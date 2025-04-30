@@ -1,7 +1,7 @@
 // ping.ts
-import { Plugin } from '../src/plugin';
-import {DiscordMessage} from "../src/discord";
-import packageJson from "../package.json"
+import { Plugin } from '../../src/plugin';
+import {DiscordMessage} from "../../src/discord";
+import packageJson from "../../package.json"
 
 const startup_time = new Date();
 

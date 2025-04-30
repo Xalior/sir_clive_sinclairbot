@@ -1,7 +1,7 @@
 // bot.ts
 import { env } from "./env"
 // @ts-ignore
-import { guilds } from "../../data/guilds.js"
+import { guilds } from "../data/guilds.js"
 import { GatewayIntentBits, Message, OmitPartialGroupDMChannel, TextChannel} from 'discord.js';
 import { client, DiscordMessage } from './discord';
 import { GuildData } from "./guild";
@@ -28,7 +28,8 @@ client.on('messageCreate', async (discord_message:OmitPartialGroupDMChannel<Mess
         // Per Channel
         for (const guild_channel of incoming.guild_data.channels) {
             // Correct channel?
-            if (incoming.message.channelId === guild_channel.channel_id) {
+            if (incoming.message.channelId === guild_channel.channel_id ||
+            (guild_channel.channel_id === '*')) {
 
                 // Required Terms
                 let required_filters = filter(incoming, guild_channel.filters?.required);

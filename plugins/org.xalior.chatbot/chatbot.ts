@@ -1,6 +1,6 @@
 // chatbot.ts
-import { Plugin } from '../src/plugin';
-import { DiscordMessage } from "../src/discord";
+import { Plugin } from '../../src/plugin';
+import { DiscordMessage } from "../../src/discord";
 
 export class ChatbotPlugin extends Plugin {
     public name: string = "chat.llm.specnext.dev";

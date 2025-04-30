@@ -1,8 +1,10 @@
 // exampleplugin.ts
-import { Plugin } from '../src/plugin';
-import {DiscordMessage} from "../src/discord";
+import { Plugin } from '../../src/plugin';
+import {DiscordMessage} from "../../src/discord";
 
-export class ExamplePlugin extends Plugin {
+
+// An example Sir.Clive plugin, that replies to messages
+export class Example extends Plugin {
     public plugin_name: string = "org.xalior.example";
 
     public async message(discord_message: DiscordMessage, message_content: string, config?: any): Promise<void> {

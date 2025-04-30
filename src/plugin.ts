@@ -6,7 +6,7 @@ import PersistanceAdapter from "./persistance_adapter";
 export abstract class Plugin {
     private client: Client | undefined;
     public plugin_name: string = "";
-    private persistance: PersistanceAdapter;
+    protected persistance: PersistanceAdapter;
 
     protected constructor(discord_client: Client) {
         if (this.constructor === Plugin) {

@@ -7,6 +7,7 @@ export const env = createEnv({
         // Discord token
         BOT_TOKEN: z.string().nonempty("BOT_TOKEN must not be empty"),
         OPENAI_TOKEN: z.string().nonempty("OPENAI_TOKEN must not be empty"),
+        CACHE_URL: z.string().nonempty("CACHE_URL must not be empty"),
     },
 
     runtimeEnv: process.env

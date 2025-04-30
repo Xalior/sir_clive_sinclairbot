@@ -1,11 +1,12 @@
 import Redis from 'ioredis';
-import config from "../data/config.js";
+import { env } from "./env"
 
-const cache = new Redis(config.cache_url);
+const SLUG = 'sir_clive_sinclairbot';
+const cache = new Redis(env.CACHE_URL);
 const DEBUG_ADAPTER = true;
 
 class PersistanceAdapter {
-    private model: any;
+    private model: string;
     /**
      *
      * Creates an instance of PersistanceAdapter for the all database access.
@@ -14,10 +15,9 @@ class PersistanceAdapter {
      * @param {string} name Name of the model.
      *
      */
-    constructor(name) {
+    constructor(name: string) {
         this.model = name;
     }
-
 
     /**
      *
@@ -31,22 +31,21 @@ class PersistanceAdapter {
      * used for all operations involving storage, retrieval, and deletion.
      *
      */
-    key(id) {
-        return `${config.slug}:${this.model}:${id}`;
+    key(id: string): string {
+        return `${SLUG}:${this.model}:${id}`;
     }
+
     /**
      *
      * Update or Create an instance of a data object.
      *
-     * @return {Promise} Promise fulfilled when the operation succeeded. Rejected with error when
-     * encountered.
-     * @param {string} id Identifier that SCS will use to reference this model instance for
-     * future operations.
+     * @return {Promise<void>} Promise fulfilled when the operation succeeded. Rejected with error when encountered.
+     * @param {string} id Identifier that SCS will use to reference this model instance for future operations.
      * @param {object} payload Object with all properties intended for storage.
      * @param {number} expiresIn Number of seconds intended for this model to be stored.
      *
      */
-    async upsert(id:string, payload:Object, expiresIn:number = 0) {
+    async upsert(id: string, payload: object, expiresIn: number = 0): Promise<void> {
         if(DEBUG_ADAPTER) console.debug('adapter upsert', this.key(id), payload);
 
         const key = this.key(id);
@@ -66,25 +65,26 @@ class PersistanceAdapter {
      *
      * Return previously stored instance of an object.
      *
-     * @return {Promise} Promise fulfilled with what was previously stored for the id (when found and
+     * @return {Promise<any | undefined>} Promise fulfilled with what was previously stored for the id (when found and
      * not dropped yet due to expiration) or falsy value when not found anymore. Rejected with error
      * when encountered.
      * @param {string} id Identifier of object
      *
      */
-    async find(id) {
+    async find(id: string): Promise<any | undefined> {
         let item = undefined;
 
         // This isn't used, but it's kept as a reminder on how specialist models can be handled
         /* if(this.model==='Client') {
-            item = await Client.findByClientId(id);
+            item = await Client.find(id);
             return item;
-        } */
+        }
+         */
 
         const key = this.key(id);
         item = await cache.call('JSON.GET', key);
-        if (!item) return undefined;
 
+        if(typeof item !== 'string') return undefined;
         return JSON.parse(item);
     }
 
@@ -93,12 +93,11 @@ class PersistanceAdapter {
      * Destroy/Drop/Remove a stored oidc-provider model. Future finds for this id should be fulfilled
      * with falsy values.
      *
-     * @return {Promise} Promise fulfilled when the operation succeeded. Rejected with error when
-     * encountered.
+     * @return {Promise<void>} Promise fulfilled when the operation succeeded. Rejected with error when encountered.
      * @param {string} id Identifier of object
      *
      */
-    async destroy(id) {
+    async destroy(id: string): Promise<void> {
         const key = this.key(id);
         await cache.del(key);
     }

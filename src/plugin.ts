@@ -1,10 +1,12 @@
 // plugin.ts
 import {Client} from 'discord.js';
 import {DiscordMessage} from "./discord";
+import PersistanceAdapter from "./persistance_adapter";
 
 export abstract class Plugin {
     private client: Client | undefined;
     public plugin_name: string = "";
+    private persistance: PersistanceAdapter;
 
     protected constructor(discord_client: Client) {
         if (this.constructor === Plugin) {
@@ -13,6 +15,8 @@ export abstract class Plugin {
         if (discord_client) {
             this.client = discord_client;
         }
+
+        this.persistance = new PersistanceAdapter('this.plugin_name');
 
         console.info("Creating plugin:", this.constructor.name);
     }

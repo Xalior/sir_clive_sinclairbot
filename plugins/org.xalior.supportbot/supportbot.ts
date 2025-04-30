@@ -1,9 +1,12 @@
 // supportbot.ts
 import { Plugin } from '../../src/plugin';
 import { DiscordMessage } from "../../src/discord";
+import {Client} from "discord.js";
 
 export class SupportbotPlugin extends Plugin {
-    public name: string = "SupportbotPlugin";
+    constructor(discord_client: Client) {
+        super(discord_client, "org.xalior.supportbot");
+    }
 
     public async messageCreate(discord_message: DiscordMessage): Promise<void> {
         try {

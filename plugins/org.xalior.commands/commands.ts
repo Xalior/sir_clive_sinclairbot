@@ -2,6 +2,7 @@
 import { Plugin } from '../../src/plugin';
 import {DiscordMessage} from "../../src/discord";
 import packageJson from "../../package.json"
+import {Client} from "discord.js";
 
 const startup_time = new Date();
 
@@ -30,7 +31,9 @@ function formatDuration(ms: number): string {
 }
 
 export class CommandsPlugin extends Plugin {
-    public plugin_name: string = "org.xalior.commands";
+    constructor(discord_client: Client) {
+        super(discord_client, "org.xalior.commands");
+    }
 
     public async messageCreate(discord_message: DiscordMessage, config?: any): Promise<void> {
         // Commands silently fail if they come from a discord bot.

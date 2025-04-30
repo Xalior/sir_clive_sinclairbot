@@ -7,7 +7,13 @@ import { client, DiscordMessage } from './discord';
 import { GuildData } from "./guild";
 import { filter } from "./filters";
 import {action} from "./actions";
+import {plugins} from "./plugin";
 let client_id: string | undefined;
+
+console.log(plugins);
+for (const plugin of plugins) {
+    console.log(plugin.persistance.model);
+}
 
 client.once('ready', () => {
     console.info(`Discord Connection Established -- user: ${client.user?.tag}!`);

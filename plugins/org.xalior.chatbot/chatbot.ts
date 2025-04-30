@@ -1,9 +1,12 @@
 // chatbot.ts
 import { Plugin } from '../../src/plugin';
 import { DiscordMessage } from "../../src/discord";
+import {Client} from "discord.js";
 
 export class ChatbotPlugin extends Plugin {
-    public name: string = "chat.llm.specnext.dev";
+    constructor(discord_client: Client) {
+        super(discord_client, "org.xalior.chatbot");
+    }
 
     public async messageCreate(discord_message: DiscordMessage): Promise<void> {
         try {

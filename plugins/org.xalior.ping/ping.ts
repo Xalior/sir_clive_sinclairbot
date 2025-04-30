@@ -1,9 +1,12 @@
 // ping.ts
 import { Plugin } from '../../src/plugin';
 import {DiscordMessage} from "../../src/discord";
+import {Client} from "discord.js";
 
 export class PingPlugin extends Plugin {
-    public plugin_name: string = "org.xalior.ping";
+    constructor(discord_client: Client) {
+        super(discord_client, "org.xalior.ping");
+    }
 
     public async message(discord_message: DiscordMessage, message_content: string, config?: any): Promise<void> {
         if (message_content !== '!ping') return;

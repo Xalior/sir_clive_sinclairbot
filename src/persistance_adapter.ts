@@ -6,7 +6,7 @@ const cache = new Redis(env.CACHE_URL);
 const DEBUG_ADAPTER = true;
 
 class PersistanceAdapter {
-    private model: string;
+    model: string;
     /**
      *
      * Creates an instance of PersistanceAdapter for the all database access.

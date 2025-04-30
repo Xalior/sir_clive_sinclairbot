@@ -1,10 +1,2 @@
-import {PingPlugin} from "../plugins/org.xalior.ping/ping";
-import {Example} from "../plugins/org.xalior.example/example";
-import {CommandsPlugin} from "../plugins/org.xalior.commands/commands";
-
-const plugins = [
-    CommandsPlugin,
-    Example,
-    PingPlugin
-];
-export { plugins };
+// Define the plugin namespaces to load - this is just a js array
+export const plugins = ['org.xalior.ping', 'org.xalior.example', 'org.xalior.commands'];

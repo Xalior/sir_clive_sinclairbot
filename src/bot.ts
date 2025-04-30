@@ -7,17 +7,25 @@ import { client, DiscordMessage } from './discord';
 import { GuildData } from "./guild";
 import { filter } from "./filters";
 import {action} from "./actions";
-import {plugins} from "./plugin";
+import {load_plugins, plugins} from "./plugin";
+import express from 'express';
+
 let client_id: string | undefined;
 
-for (const plugin of plugins) {
-    console.log("Loaded:",plugin.persistance.model);
-}
+const app = express();
+app.set('trust proxy', 1);
+
+load_plugins(app);
+
 
 client.once('ready', () => {
     console.info(`Discord Connection Established -- user: ${client.user?.tag}!`);
-
     client_id = client.user?.id;
+    
+    // Log loaded plugins after client is ready
+    for (const namespace in plugins) {
+        console.log(`Loaded: ${namespace} plugin - ${plugins[namespace].persistance.model}`);
+    }
 });
 
 client.on('messageCreate', async (discord_message:OmitPartialGroupDMChannel<Message>) => {

@@ -1,10 +1,53 @@
 // plugin.ts
 import {Client} from 'discord.js';
-import {DiscordMessage} from "./discord";
+import {client, DiscordMessage} from "./discord";
 import PersistanceAdapter from "./persistance_adapter";
+import {Express} from 'express';
+import {plugins as pluginNamespaces} from "../data/plugins";
 
-export const plugins: Array<Plugin> = [];
+export const plugins: Record<string, Plugin> = {};
 
+// Dynamically load and initialize plugins
+export const load_plugins = async (app: Express) => {
+    for (const namespace of pluginNamespaces) {
+        try {
+            // Extract the plugin name from the namespace (last part after dot)
+            const pluginName = namespace.split('.').pop() || '';
+            // Create the import path
+            const importPath = `../plugins/${namespace}/${pluginName}`;
+
+            // Dynamically import the plugin module
+            const pluginModule = await import(importPath);
+
+            // Find the plugin class - it's usually named with 'Plugin' suffix
+            const pluginClass = Object.values(pluginModule).find(
+                (exportedItem: any) =>
+                    typeof exportedItem === 'function' &&
+                    exportedItem.prototype instanceof Plugin
+            );
+
+            if (pluginClass as Plugin) {
+                // Initialize the plugin with the Discord client
+                plugins[namespace] = new pluginClass(client);
+                console.log(`Successfully loaded plugin: ${namespace}`);
+            } else {
+                console.error(`No valid plugin class found in ${importPath}`);
+            }
+        } catch (error) {
+            console.error(`Failed to load plugin ${namespace}:`, error);
+        }
+    }
+};
+
+
+/**
+ * Get plugin by namespace
+ * @param namespace The namespace of the plugin to find
+ * @returns The plugin instance or undefined if not found
+ */
+export function getPlugin(namespace: string): Plugin | undefined {
+    return plugins[namespace];
+}
 
 export abstract class Plugin {
     private client: Client | undefined;
@@ -21,10 +64,9 @@ export abstract class Plugin {
         this.persistance = new PersistanceAdapter(plugin_name);
         
         console.info(`Creating plugin: ${this.constructor.name} with name: ${plugin_name}`);
-        plugins.push(this);
     }
     
-    protected get plugin_name(): string {
+    public get plugin_name(): string {
         return this._plugin_name;
     }
 

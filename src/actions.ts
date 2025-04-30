@@ -1,19 +1,7 @@
-import {discordSort, Message, OmitPartialGroupDMChannel, TextChannel} from "discord.js";
+import {Message, OmitPartialGroupDMChannel, TextChannel} from "discord.js";
 import {ChannelFilterActions, ChannelFilterActionReport} from "./channel";
 import {DiscordMessage} from "./discord";
-import{Plugin} from "./plugin";
-import {plugins as loaded_plugins} from "../data/plugins";
-
-let plugins: Array<Plugin> = [];
-
-for (let index in loaded_plugins) {
-    if (loaded_plugins.hasOwnProperty(index)) {
-        // @ts-ignore -
-        const new_plugin = new loaded_plugins[index]();
-
-        plugins[new_plugin.plugin_name] = new_plugin;
-    }
-}
+import {plugins} from "./plugin";
 
 async function message_expand(message: OmitPartialGroupDMChannel<Message>, template:string): Promise<string> {
     const channel = await message.guild?.channels.fetch(message.channelId);
@@ -70,10 +58,14 @@ async function action(incoming: DiscordMessage, actions: ChannelFilterActions | 
 
         if (actions.plugin) {
             for(const this_plugin in actions.plugin) {
-                if(plugins.hasOwnProperty(this_plugin)) {
+                console.log("this_plugin:", this_plugin);
+                if(plugins[this_plugin]) {
+                    console.log("plugin:", this_plugin);
                     // await, plugins run serially, not parallel!
                     await plugins[this_plugin].messageCreate(incoming, actions.plugin[this_plugin]);
                     incoming.action_report.plugins_triggered = incoming.action_report.plugins_triggered + ` * ${this_plugin}\n`;
+                } else {
+                    console.warn(`Plugin ${this_plugin} is referenced in actions but not loaded`);
                 }
             }
         }

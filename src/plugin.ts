@@ -29,7 +29,7 @@ export const load_plugins = async (app: Express) => {
             if (pluginClass as Plugin) {
                 // Initialize the plugin with the Discord client
                 plugins[namespace] = new pluginClass(client);
-                console.log(`Successfully loaded plugin: ${namespace}`);
+                console.log(`plugin.loaded: ${namespace}`);
             } else {
                 console.error(`No valid plugin class found in ${importPath}`);
             }
@@ -65,7 +65,7 @@ export abstract class Plugin {
         this.persistance = new PersistanceAdapter(plugin_name);
         this.express_app = express_app;
         
-        console.info(`Creating plugin: ${this.constructor.name} with name: ${plugin_name}`);
+        console.info(`plugin.loading: ${plugin_name}.${this.constructor.name}`);
     }
     
     public get plugin_name(): string {

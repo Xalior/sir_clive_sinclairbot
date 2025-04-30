@@ -31,7 +31,7 @@ function formatDuration(ms: number): string {
     return formattedDuration.trim();
 }
 
-export class CommandsPlugin extends Plugin {
+export class CommandManager extends Plugin {
     constructor(discord_client: Client, express_app: Express) {
         super(discord_client, express_app,"org.xalior.commands");
     }

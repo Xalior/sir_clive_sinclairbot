@@ -10,9 +10,8 @@ import {action} from "./actions";
 import {plugins} from "./plugin";
 let client_id: string | undefined;
 
-console.log(plugins);
 for (const plugin of plugins) {
-    console.log(plugin.persistance.model);
+    console.log("Loaded:",plugin.persistance.model);
 }
 
 client.once('ready', () => {

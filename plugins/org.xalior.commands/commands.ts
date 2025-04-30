@@ -3,6 +3,7 @@ import { Plugin } from '../../src/plugin';
 import {DiscordMessage} from "../../src/discord";
 import packageJson from "../../package.json"
 import {Client} from "discord.js";
+import {Express} from "express";
 
 const startup_time = new Date();
 
@@ -31,8 +32,8 @@ function formatDuration(ms: number): string {
 }
 
 export class CommandsPlugin extends Plugin {
-    constructor(discord_client: Client) {
-        super(discord_client, "org.xalior.commands");
+    constructor(discord_client: Client, express_app: Express) {
+        super(discord_client, express_app,"org.xalior.commands");
     }
 
     public async messageCreate(discord_message: DiscordMessage, config?: any): Promise<void> {

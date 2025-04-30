@@ -2,10 +2,11 @@
 import { Plugin } from '../../src/plugin';
 import {DiscordMessage} from "../../src/discord";
 import {Client} from "discord.js";
+import {Express} from "express";
 
 export class PingPlugin extends Plugin {
-    constructor(discord_client: Client) {
-        super(discord_client, "org.xalior.ping");
+    constructor(discord_client: Client, express_app: Express) {
+        super(discord_client, express_app,"org.xalior.ping");
     }
 
     public async message(discord_message: DiscordMessage, message_content: string, config?: any): Promise<void> {

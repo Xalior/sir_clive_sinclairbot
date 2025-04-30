@@ -53,8 +53,9 @@ export abstract class Plugin {
     private client: Client | undefined;
     private _plugin_name: string;
     persistance: PersistanceAdapter;
+    express_app: Express;
 
-    protected constructor(discord_client: Client, plugin_name: string) {
+    protected constructor(discord_client: Client, express_app: Express, plugin_name: string) {
         if (this.constructor === Plugin) {
             throw new Error("Cannot instantiate the abstract class 'Plugin'");
         }
@@ -62,6 +63,7 @@ export abstract class Plugin {
         this.client = discord_client;
         this._plugin_name = plugin_name;
         this.persistance = new PersistanceAdapter(plugin_name);
+        this.express_app = express_app;
         
         console.info(`Creating plugin: ${this.constructor.name} with name: ${plugin_name}`);
     }

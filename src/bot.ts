@@ -29,7 +29,8 @@ client.on('messageCreate', async (discord_message:OmitPartialGroupDMChannel<Mess
         for (const guild_channel of incoming.guild_data.channels) {
             // Correct channel?
             if (incoming.message.channelId === guild_channel.channel_id ||
-                (guild_channel.channel_id === '*')) {
+                (guild_channel.channel_id === '*'))
+            {
 
                 // Required Terms
                 let required_filters = filter(incoming, guild_channel.filters?.required);

@@ -9,7 +9,7 @@ import {env} from "./env";
 
 // @ts-ignore - we should probably build types for 'guilds'
 import {guilds} from "../data/guilds.js";
-let client_id: string | undefined;
+let client_id: string;
 
 const client = new Client({
     intents: [
@@ -43,6 +43,6 @@ class DiscordMessage {
 export {client, client_id, DiscordMessage};
 
 client.once('ready', () => {
-    console.info(`Discord Connection Established -- user: ${client.user?.tag}!`);
+    console.info(`Discord Connection Established -- user: ${client.user?.tag}, id: ${client.user?.id}`);
     client_id = client.user?.id;
 });

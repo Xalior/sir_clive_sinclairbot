@@ -58,14 +58,12 @@ async function action(incoming: DiscordMessage, actions: ChannelFilterActions | 
 
         if (actions.plugin) {
             for(const this_plugin in actions.plugin) {
-                console.log("this_plugin:", this_plugin);
                 if(plugins[this_plugin]) {
-                    console.log("plugin:", this_plugin);
                     // await, plugins run serially, not parallel!
                     await plugins[this_plugin].messageCreate(incoming, actions.plugin[this_plugin]);
                     incoming.action_report.plugins_triggered = incoming.action_report.plugins_triggered + ` * ${this_plugin}\n`;
                 } else {
-                    console.warn(`Plugin ${this_plugin} is referenced in actions but not loaded`);
+                    console.warn(`Plugin ${this_plugin} triggered by action, but is not loaded`);
                 }
             }
         }

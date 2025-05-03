@@ -9,10 +9,14 @@ dotenv.config();
 
 export const env = createEnv({
     server: {
-        // Discord token
-        BOT_TOKEN: z.string().nonempty("BOT_TOKEN must not be empty"),
-        OPENAI_TOKEN: z.string().nonempty("OPENAI_TOKEN must not be empty"),
-        CACHE_URL: z.string().nonempty("CACHE_URL must not be empty"),
+        BOT_TOKEN: z.string().nonempty("Discord App BOT_TOKEN must not be empty"),
+        OPENAI_TOKEN: z.string().nonempty("Openweb-ui or OPENAI_TOKEN must not be empty"),
+        CACHE_URL: z.string().nonempty("Redis CACHE_URL must not be empty"),
+        OIDC_PROVIDER_URL: z.string().nonempty("Authentication OIDC_PROVIDER_URL must not be empty"),
+        OIDC_CLIENT_ID: z.string().nonempty("Authentication OIDC_CLIENT_ID must not be empty"),
+        OIDC_CLIENT_SECRET: z.string().nonempty("Authentication OIDC_CLIENT_SECRET must not be empty"),
+        HOSTNAME: z.string().nonempty("Bot HOSTNAME must not be empty"),
+        PORT: z.number().default(8443)
     },
 
     // This function will be used to get the value of an environment variable

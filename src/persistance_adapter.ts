@@ -1,12 +1,11 @@
 import Redis from 'ioredis';
-import { env } from "./env"
+import { env } from "./env";
 
-const SLUG = 'sir_clive_sinclairbot';
 const cache = new Redis(env.CACHE_URL);
 const DEBUG_ADAPTER = true;
 
-class PersistanceAdapter {
-    model: string;
+class PersistanceAdapter<T> {
+    private model: string;
     /**
      *
      * Creates an instance of PersistanceAdapter for the all database access.
@@ -17,6 +16,15 @@ class PersistanceAdapter {
      */
     constructor(name: string) {
         this.model = name;
+    }
+
+    /**
+     * Get an item by ID
+     * @param id The ID of the item to retrieve
+     * @returns A Promise resolving to the item of type T
+     */
+    async get(id: string): Promise<T> {
+        return await this.find(id);
     }
 
     /**
@@ -32,7 +40,7 @@ class PersistanceAdapter {
      *
      */
     key(id: string): string {
-        return `${SLUG}:${this.model}:${id}`;
+        return `${env.HOSTNAME}:${this.model}:${id}`;
     }
 
     /**
@@ -90,7 +98,7 @@ class PersistanceAdapter {
 
     /**
      *
-     * Destroy/Drop/Remove a stored oidc-provider model. Future finds for this id should be fulfilled
+     * Destroy/Drop/Remove a stored model. Future finds for this id should be fulfilled
      * with falsy values.
      *
      * @return {Promise<void>} Promise fulfilled when the operation succeeded. Rejected with error when encountered.

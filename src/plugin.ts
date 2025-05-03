@@ -52,7 +52,7 @@ export function getPlugin(namespace: string): Plugin | undefined {
 export abstract class Plugin {
     private client: Client | undefined;
     private _plugin_name: string;
-    persistance: PersistanceAdapter;
+    persistance: PersistanceAdapter<any>;
     express_app: Express;
 
     protected constructor(discord_client: Client, express_app: Express, plugin_name: string) {
@@ -62,7 +62,7 @@ export abstract class Plugin {
 
         this.client = discord_client;
         this._plugin_name = plugin_name;
-        this.persistance = new PersistanceAdapter(plugin_name);
+        this.persistance = new PersistanceAdapter<any>(plugin_name);
         this.express_app = express_app;
         
         console.info(`plugin.loading: ${plugin_name}.${this.constructor.name}`);

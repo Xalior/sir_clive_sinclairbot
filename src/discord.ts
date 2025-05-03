@@ -2,13 +2,7 @@
 import {Client, GatewayIntentBits, Message, OmitPartialGroupDMChannel, TextChannel} from 'discord.js';
 import {ChannelFilterActionReport} from "./channel";
 import {GuildData} from "./guild";
-import {plugins} from "./plugin";
-import {filter} from "./filters";
-import {action} from "./actions";
-import {env} from "./env";
 
-// @ts-ignore - we should probably build types for 'guilds'
-import {guilds} from "../data/guilds.js";
 let client_id: string;
 
 const client = new Client({
@@ -44,5 +38,5 @@ export {client, client_id, DiscordMessage};
 
 client.once('ready', () => {
     console.info(`✅ Discord connected -- user: \`${client.user?.tag}\`, id: ${client.user?.id}`);
-    client_id = client.user?.id;
+    client_id = client.user?.id as string;
 });

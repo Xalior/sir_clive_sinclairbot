@@ -132,10 +132,19 @@ const server = app.listen(env.PORT, '0.0.0.0')
 
 // Graceful shutdown
 process.on('SIGINT', () => {
-    console.log('SIGUSR2 signal received: closing HTTP server');
+    console.info('SIGUSR2 signal received');
+
+    console.log('closing HTTP server');
     server.close(() => {
         console.log('HTTP server closed');
     });
+
+    console.log('closing DISCORD client');
+    discord_client.destroy().then(() => {
+        console.log('DISCORD client closed');
+    });
+
+    process.exit(0);
 });
 
 // Login to Discord - that starts the bot!

@@ -7,17 +7,21 @@ import { client as discord_client, DiscordMessage } from './discord';
 import { filter } from "./filters";
 import {action} from "./actions";
 import {load_plugins,} from "./plugin";
-import express from 'express';
+import express, {NextFunction} from 'express';
 import cookieParser from 'cookie-parser';
 import session from 'express-session';
 import passport from "passport";
 import {setup as setupAuth} from "./auth"
+import path from "path";
+import mustacheExpress from 'mustache-express';
+import flash from "connect-flash";
+import{env} from './env'
 
 const app = express();
 
 app.use(cookieParser());
 app.use(session({
-    secret: process.env.SESSION_SECRET || 'session-secret',
+    secret: env.SESSION_SECRET || 'session-secret',
     resave: false,
     saveUninitialized: true,
     cookie: {
@@ -35,6 +39,34 @@ setupAuth(app);
 
 // Load plugins, as per config file
 load_plugins(app);
+
+// Static files
+app.use('/static', express.static(path.join(__dirname, '../public')));
+
+// Register `.mustache` as the template engine
+app.engine('mustache', mustacheExpress());
+
+// Configure app views and template engine
+app.set('view engine', 'mustache');
+app.set('views', path.join(__dirname, '../views'));
+
+// Popup message things
+app.use(flash());
+
+app.get('/', (req: Request, res: Response, next: NextFunction) => {
+    try {
+        if(req.user && req.session.destination_path) {
+            console.info("redirecting to ", req.session.destination_path);
+            const destinationPath = req.session.destination_path;
+            delete(req.session.destination_path);
+            return res.redirect(destinationPath);
+        }
+        console.log("req.user",req.user);
+        res.send("home to "+ (req.user == undefined ? "anonymous" : req.user.me.email));
+    } catch (error) {
+        next(error);
+    }
+});
 
 // The bot basically functions around incoming messages, which we start from here...
 discord_client.on('messageCreate', async (discord_message:OmitPartialGroupDMChannel<Message>) => {

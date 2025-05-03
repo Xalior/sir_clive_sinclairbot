@@ -9,6 +9,9 @@ import {
 import {env} from './env';
 import csrf from "@dr.pogodin/csurf";
 import PersistanceAdapter from "./persistance_adapter";
+import {Configuration} from "openid-client";
+
+let issuer: Configuration;
 
 export interface Claim {
     access_token: string;
@@ -23,75 +26,10 @@ export interface Claim {
 
 export const claims = new PersistanceAdapter<Claim>('claims');
 
-export const ensureAuthenticated = (req: Request, res: Response, next: NextFunction) => {
-    if (req.isAuthenticated()) {
-        return next();
-    }
-
-    // @ts-ignore
-    req.session.destination_path = req.originalUrl;
-    res.redirect('/login') // if not auth
-};
-
-passport.serializeUser((user, cb) => {
-    cb(null, user)
-})
-
-passport.deserializeUser((user: Express.User, cb) => {
-    // console.log("deserializeUser: ", user);
-    return cb(null, user)
-})
-
-const login = passport.authenticate('nbn', {
-    failureRedirect: '/login',
-    failureFlash: true,
-    keepSessionInfo: true
-});
-
-const logout = (req: Request, res: Response, next: NextFunction) => {
-    try {
-        req.logout(() => {
-            res.redirect(
-                openidClient.buildEndSessionUrl(issuer, {
-                    post_logout_redirect_uri: `https://${config.HOSTNAME}`,
-                }).href,
-            )
-        })
-    } catch (error) {
-        next(error);
-    }
-};
-
-const callback = (req: Request, res: Response, next: NextFunction) => {
-    // Executed on successful login
-    // console.log("Callback URL triggered");
-    // console.log("req", req);
-    // console.log("req.params", req.session);
-    // console.log("req.user", req.user);
-    res.redirect('/');
-};
-
-const me = (req: Request, res: Response, next: NextFunction) => {
-    // console.log("req: ", req.user);
-    res.send(req.user);
-};
-
-const router = Router();
-
-router.get('/login', login);
-router.get('/callback',
-    passport.authenticate('nbn', {
-        failureRedirect: '/login',
-        failureFlash: true,
-        keepSessionInfo: true
-    }), callback);
-router.get('/logout', logout);
-router.get('/me', ensureAuthenticated, me);
-
 export const setup = async (app: Express) => {
     const provider_url = new URL(env.OIDC_PROVIDER_URL);
 
-    const issuer = await openidClient.discovery(
+    issuer = await openidClient.discovery(
         provider_url,
         env.OIDC_CLIENT_ID,
         env.OIDC_CLIENT_SECRET,
@@ -163,3 +101,68 @@ export const setup = async (app: Express) => {
 
     app.use('/', router);
 }
+
+export const ensureAuthenticated = (req: Request, res: Response, next: NextFunction) => {
+    if (req.isAuthenticated()) {
+        return next();
+    }
+
+    // @ts-ignore
+    req.session.destination_path = req.originalUrl;
+    res.redirect('/login') // if not auth
+};
+
+passport.serializeUser((user, cb) => {
+    cb(null, user)
+})
+
+passport.deserializeUser((user: Express.User, cb) => {
+    // console.log("deserializeUser: ", user);
+    return cb(null, user)
+})
+
+const login = passport.authenticate('nbn', {
+    failureRedirect: '/login',
+    failureFlash: true,
+    keepSessionInfo: true
+});
+
+const logout = (req: Request, res: Response, next: NextFunction) => {
+    try {
+        req.logout(() => {
+            res.redirect(
+                openidClient.buildEndSessionUrl(issuer, {
+                    post_logout_redirect_uri: `https://${env.HOSTNAME}`,
+                }).href,
+            )
+        })
+    } catch (error) {
+        next(error);
+    }
+};
+
+const callback = (req: Request, res: Response, next: NextFunction) => {
+    // Executed on successful login
+    // console.log("Callback URL triggered");
+    // console.log("req", req);
+    // console.log("req.params", req.session);
+    // console.log("req.user", req.user);
+    res.redirect('/');
+};
+
+const me = (req: Request, res: Response, next: NextFunction) => {
+    // console.log("req: ", req.user);
+    res.send(req.user);
+};
+
+const router = Router();
+
+router.get('/login', login);
+router.get('/callback',
+    passport.authenticate('nbn', {
+        failureRedirect: '/login',
+        failureFlash: true,
+        keepSessionInfo: true
+    }), callback);
+router.get('/logout', logout);
+router.get('/me', ensureAuthenticated, me);

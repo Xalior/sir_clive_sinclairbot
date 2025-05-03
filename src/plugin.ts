@@ -4,8 +4,18 @@ import {client, DiscordMessage} from "./discord";
 import PersistanceAdapter from "./persistance_adapter";
 import {Express} from 'express';
 import {plugins as pluginNamespaces} from "../data/plugins";
+import {Claim, Claims} from "./auth";
 
 export const plugins: Record<string, Plugin> = {};
+
+
+export interface DiscordUser {
+    claim_id: string;
+    discord_id: string;
+}
+
+
+export const DiscordUsers = new PersistanceAdapter<DiscordUser>('discord_user');
 
 // Dynamically load and initialize plugins
 export const load_plugins = async (app: Express) => {
@@ -82,5 +92,33 @@ export abstract class Plugin {
 
     public unregister(): void {
         console.info(`Unregistering Class ${this.constructor.name} as Plugin ${this.plugin_name}`);
+    }
+
+    // DIV containing summary of widget, shown to anonymous users
+    public async getWidget(req: Request):Promise<string> {
+        return "";
+    }
+
+    // DIV containing summary of widget, shown to authenticated users
+    public async getSecureWidget(req: Request):Promise<string> {
+        return "";
+    }
+
+    // Nested <UL> block, inserted into top NAVBAR,and turned into dropdowns
+    public async getNavblock(req: Request):Promise<string> {
+        return "";
+    }
+
+    // Nested <UL> block, inserted into top NAVBAR,and turned into dropdowns
+    public async getSecureNavblock(req: Request):Promise<string> {
+        return "";
+    }
+
+    protected async getDiscordUser(discord_message: DiscordMessage): Promise<DiscordUser> {
+        return DiscordUsers.get(discord_message.message.author.id);
+    }
+
+    protected async getClaim(claim_id: string): Promise<Claim> {
+        return Claims.get(claim_id);
     }
 }

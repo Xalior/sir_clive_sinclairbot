@@ -43,6 +43,6 @@ class DiscordMessage {
 export {client, client_id, DiscordMessage};
 
 client.once('ready', () => {
-    console.info(`Discord Connection Established -- user: ${client.user?.tag}, id: ${client.user?.id}`);
+    console.info(`✅ Discord connected -- user: \`${client.user?.tag}\`, id: ${client.user?.id}`);
     client_id = client.user?.id;
 });

@@ -17,7 +17,8 @@ export const env = createEnv({
         OIDC_CLIENT_SECRET: z.string().nonempty("Authentication OIDC_CLIENT_SECRET must not be empty"),
         HOSTNAME: z.string().nonempty("Bot HOSTNAME must not be empty"),
         SESSION_SECRET: z.string().optional(),
-        PORT: z.number().default(8443)
+        PORT: z.number().default(8443),
+        VERBOSE: z.boolean().default(false)
     },
 
     // This function will be used to get the value of an environment variable

@@ -39,12 +39,12 @@ export const load_plugins = async (app: Express) => {
             if (pluginClass as Plugin) {
                 // Initialize the plugin with the Discord client
                 plugins[namespace] = new pluginClass(client);
-                console.log(`plugin.loaded: ${namespace}`);
+                console.log(await plugins[namespace].onLoaded());
             } else {
                 console.error(`No valid plugin class found in ${importPath}`);
             }
         } catch (error) {
-            console.error(`Failed to load plugin ${namespace}:`, error);
+            console.error(`🗑️ - Failed to load plugin ${namespace}:`, error);
         }
     }
 };
@@ -75,7 +75,7 @@ export abstract class Plugin {
         this.persistance = new PersistanceAdapter<any>(plugin_name);
         this.express_app = express_app;
         
-        console.info(`plugin.loading: ${plugin_name}.${this.constructor.name}`);
+        console.info(`📁 - plugin.loading: ${plugin_name}.${this.constructor.name}`);
     }
     
     public get plugin_name(): string {
@@ -120,5 +120,9 @@ export abstract class Plugin {
 
     protected async getClaim(claim_id: string): Promise<Claim> {
         return Claims.get(claim_id);
+    }
+
+    public async onLoaded(): Promise<string> {
+        return `📂 - plugin.loaded: ${this.plugin_name}`;
     }
 }

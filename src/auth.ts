@@ -35,7 +35,7 @@ export const setup = async (app: Express) => {
         env.OIDC_CLIENT_SECRET,
     );
 
-    console.log('Discovered issuer:', issuer.serverMetadata());
+    if(env.VERBOSE) console.log('Discovered issuer:', issuer.serverMetadata());
 
     let options: StrategyOptionsWithRequest = {
         config: issuer,

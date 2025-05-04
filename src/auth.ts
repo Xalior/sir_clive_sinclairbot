@@ -24,7 +24,13 @@ export interface Claim {
     updated_at: number;
 }
 
+export interface Verification {
+    verification_id: string;
+    discord_id: string;
+}
+
 export const Claims = new PersistanceAdapter<Claim>('claims');
+export const Verifications = new PersistanceAdapter<Verification>('verifications');
 
 export const setup = async (app: Express) => {
     const provider_url = new URL(env.OIDC_PROVIDER_URL);
@@ -67,6 +73,7 @@ export const setup = async (app: Express) => {
             }
 
             await Claims.upsert(this_claim.sub, claim);
+            await
 
             verified(null, claim);
         }

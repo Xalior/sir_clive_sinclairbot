@@ -2,6 +2,8 @@ Sir. Clive Sinclairbot Changelog
 
 *WARNING* - releases marked with 🧠 were primarily written by the discord bot itself, via prompting its own large language model, so one is advised to treat accordingly.
 
+v0.0.8 👥 OIDC client, can login & logout, and connect discord account to local account
+
 v0.0.7 ❕ LLM Chatbot plugin can now reset context, and help users
 
 v0.0.6 🤖 LLM Chatbot plugin, but still on unstable plugin API

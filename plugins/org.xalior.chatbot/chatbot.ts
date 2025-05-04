@@ -47,6 +47,11 @@ export class ChatbotPlugin extends Plugin {
         return true;
     }
 
+
+    public async messageDirectCreate(discord_message: DiscordMessage): Promise<void> {
+        await this.execute_command(discord_message);
+    }
+
     public async messageCreate(discord_message: DiscordMessage): Promise<void> {
         try {
             // Is the message addressed to the bot?

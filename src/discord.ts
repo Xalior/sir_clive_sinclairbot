@@ -1,7 +1,7 @@
-
-import {Client, GatewayIntentBits, Message, OmitPartialGroupDMChannel, TextChannel} from 'discord.js';
+import {Client, GatewayIntentBits, Message, OmitPartialGroupDMChannel, Partials} from 'discord.js';
 import {ChannelFilterActionReport} from "./channel";
 import {GuildData} from "./guild";
+import PersistanceAdapter from "./persistance_adapter";
 
 let client_id: string;
 
@@ -9,9 +9,26 @@ const client = new Client({
     intents: [
         GatewayIntentBits.Guilds,
         GatewayIntentBits.GuildMessages,
+        GatewayIntentBits.DirectMessages,
         GatewayIntentBits.MessageContent,
     ],
+    partials: [
+        Partials.Channel,
+        Partials.Message,
+        Partials.Reaction
+    ]
 });
+
+export interface DiscordAccount {
+    claim_id: string;
+    discord_id: string;
+}
+
+export const DiscordAccounts = new PersistanceAdapter<DiscordAccount>('discord_accounts');
+
+export const findDiscordAccount = async (discord_user_id: string) => {
+    return await DiscordAccounts.get(discord_user_id);
+}
 
 class DiscordMessage {
     // passed in at creation

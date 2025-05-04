@@ -23,7 +23,8 @@ class PersistanceAdapter<T> {
      * @param id The ID of the item to retrieve
      * @returns A Promise resolving to the item of type T
      */
-    async get(id: string): Promise<T> {
+    async get(id: string): Promise<T | undefined> {
+        console.log("GET:", this.model, id)
         return await this.find(id);
     }
 
@@ -79,7 +80,7 @@ class PersistanceAdapter<T> {
      * @param {string} id Identifier of object
      *
      */
-    async find(id: string): Promise<any | undefined> {
+    async find(id: string): Promise<T | undefined> {
         let item = undefined;
 
         // This isn't used, but it's kept as a reminder on how specialist models can be handled
@@ -91,6 +92,8 @@ class PersistanceAdapter<T> {
 
         const key = this.key(id);
         item = await cache.call('JSON.GET', key);
+
+        console.log("FIND:, ", item, "ID:", this.model)
 
         if(typeof item !== 'string') return undefined;
         return JSON.parse(item);

@@ -1,12 +1,10 @@
-// bot.ts
-import { env } from "./env"
-// @ts-ignore
+// @ts-ignore - this needs types
 import { guilds } from "../data/guilds.js"
 import { Message, OmitPartialGroupDMChannel, TextChannel} from 'discord.js';
 import { client as discord_client, DiscordMessage } from './discord';
 import { filter } from "./filters";
 import {action} from "./actions";
-import {load_plugins,} from "./plugin";
+import {load_plugins, plugins,} from "./plugin";
 import express, {NextFunction} from 'express';
 import cookieParser from 'cookie-parser';
 import session from 'express-session';
@@ -40,7 +38,7 @@ setupAuth(app);
 // Load plugins, as per config file
 load_plugins(app);
 
-// Static files
+
 app.use('/static', express.static(path.join(__dirname, '../public')));
 
 // Register `.mustache` as the template engine
@@ -73,39 +71,50 @@ discord_client.on('messageCreate', async (discord_message:OmitPartialGroupDMChan
     // Don't respond to automated messages
     if (discord_message.author.bot) return;
 
-    // Filter message by server (guild)
-    if(guilds[discord_message.guildId]) {
+    // Create our own state-managed version of the incoming message
+    const incoming = new DiscordMessage(discord_client, guilds[discord_message.guildId], discord_message);
 
-        // Create our own state-managed version of the incoming message
-        const incoming = new DiscordMessage(discord_client, guilds[discord_message.guildId], discord_message);
+    // This is not a direct message
+    if(incoming.message.guild !== null) {
+        // Filter message by server (guild)
+        if (guilds[discord_message.guildId]) {
 
-        // Per Channel
-        for (const guild_channel of incoming.guild_data.channels) {
-            // Correct channel?
-            if (incoming.message.channelId === guild_channel.channel_id ||
-                (guild_channel.channel_id === '*'))
-            {
 
-                // Required Terms
-                let required_filters = filter(incoming, guild_channel.filters?.required);
+            // Per Channel
+            for (const guild_channel of incoming.guild_data.channels) {
+                // Correct channel?
+                if (incoming.message.channelId === guild_channel.channel_id ||
+                    (guild_channel.channel_id === '*')) {
 
-                // Banned Terms
-                let banned_filters = filter(incoming, guild_channel.filters?.banned);
+                    // Required Terms
+                    let required_filters = filter(incoming, guild_channel.filters?.required);
 
-                // Anything can fail in the action, to we best wrap it...
-                try {
-                    // All filtering done, now deal with results - which filters depends on the results of both sets...
-                    await action(incoming, (guild_channel.filters?.all ||  (required_filters && !banned_filters)) ? guild_channel.pass : guild_channel.fail);
-                }
-                catch (error: any) {
+                    // Banned Terms
+                    let banned_filters = filter(incoming, guild_channel.filters?.banned);
+
+                    // Anything can fail in the action, to we best wrap it...
                     try {
-                        await (discord_client.channels.cache.get(incoming.guild_data.log_channel_id) as TextChannel).send(error as string);
-                    }
-                    finally {
-                        console.error(`ERROR: ${error} on ${incoming.message.guildId}.${incoming.message.channelId}:{"${incoming.message.content}"}`);
+                        // All filtering done, now deal with results - which filters depends on the results of both sets...
+                        await action(incoming, (guild_channel.filters?.all || (required_filters && !banned_filters)) ? guild_channel.pass : guild_channel.fail);
+                    } catch (error: any) {
+                        try {
+                            await (discord_client.channels.cache.get(incoming.guild_data.log_channel_id) as TextChannel).send(error as string);
+                        } finally {
+                            console.error(`ERROR: ${error} on ${incoming.message.guildId}.${incoming.message.channelId}:{"${incoming.message.content}"}`);
+                        }
                     }
                 }
             }
+        }
+    }
+    // this is a direct message
+    else {
+        if(env.VERBOSE) {
+            console.log("DM:", discord_message);
+        }
+        for(const plugin in plugins) {
+            // await, plugins run serially, not parallel!
+            await plugins[plugin].messageDirectCreate(incoming);
         }
     }
 });

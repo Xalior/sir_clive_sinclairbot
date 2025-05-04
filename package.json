@@ -1,6 +1,6 @@
 {
   "name": "sir_clive_sinclairbot",
-  "version": "0.0.5",
+  "version": "0.0.8",
   "description": "A Discord channel-manager app",
   "main": "dist/src/bot.js",
   "scripts": {
@@ -52,6 +52,7 @@
     "ts-node": "^10.9.2",
     "tsx": "^4.19.4",
     "typescript": "^5.8.2",
+    "uuid": "^11.1.0",
     "zod": "^3.24.2"
   },
   "devDependencies": {
@@ -59,11 +60,13 @@
     "@types/cookie-parser": "^1.4.8",
     "@types/express": "^5.0.1",
     "@types/express-session": "^1.18.1",
+    "@types/mustache-express": "^1.2.5",
     "@types/passport": "^1.0.17",
     "@wdio/cli": "^9.12.7",
     "@wdio/local-runner": "^9.12.7",
     "@wdio/mocha-framework": "^9.12.6",
     "@wdio/spec-reporter": "^9.12.6",
+    "express-list-endpoints": "^7.1.1",
     "wdio-wait-for": "^3.1.0"
   }
 }

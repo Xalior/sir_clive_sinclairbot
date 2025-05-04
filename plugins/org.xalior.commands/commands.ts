@@ -105,10 +105,14 @@ Bugs: ${packageJson.bugs.url}`);
                 console.log(discord_message.message.author.id);
                 let discord_user = await this.getDiscordUser(discord_message.message.author.id);
 
-                console.log("DISCORD USER:", discord_user);
                 // Part 1, the discord user exists...
                 if(discord_user?.claim_id) {
-                    await discord_message.message.reply(`You are already registered, visit https://${env.HOSTNAME}/me to see your account.`);
+
+                    // Tell user they already did that, in a private DM
+                    await this._discord_client.users.send(discord_message.message.author.id,`You are already registered, visit https://${env.HOSTNAME}/me to see your account.`);
+
+                    // Confirm we've acted on this message
+                    discord_message.message.react("🔒")
                     return;
                 }
                 const verification:Verification = {
@@ -117,9 +121,13 @@ Bugs: ${packageJson.bugs.url}`);
                 }
 
                 // Store the verification code, but only for 15minutes - this should give enough time to join NBN if not a member already
-                Verifications.upsert(verification.verification_id, verification, 15 * 60);
-                await discord_message.message.reply(`Visit https://${env.HOSTNAME}/u/${verification.verification_id} complete your registration.`);
+                await Verifications.upsert(verification.verification_id, verification, 15 * 60);
 
+                // Tell user, in DM, the secret link to complete registration
+                await this._discord_client.users.send(discord_message.message.author.id, `Visit https://${env.HOSTNAME}/u/${verification.verification_id} to complete your registration.`);
+
+                // Confirm we've acted on this message
+                discord_message.message.react("🔓")
                 break;
         }
     }

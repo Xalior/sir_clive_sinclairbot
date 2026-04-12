@@ -1,92 +1,78 @@
-# Sir. Clive Sinclairbot 🎩🤖
-## A Plugin-Powered Discord Channel-Manager for the ZX Spectrum Next Community
+# 🎩 Sir. Clive Sinclairbot
 
-<p align="center">
-  <img src="docs/avatar.png" alt="Sir. Clive Sinclairbot" width="256" />
-</p>
+> 🤖 A plugin-powered Discord channel-manager bot, written in TypeScript — with an LLM chatbot brain, OIDC account linking, a tiny web UI, and a ZX Spectrum Next soul.
 
-> *"He's polite. He's pluggable. He's presiding over your channel."* 🫡
+[![License: AGPL v3](https://img.shields.io/badge/License-AGPL_v3-blue.svg)](https://www.gnu.org/licenses/agpl-3.0)
 
-A friendly, extensible Discord bot built in TypeScript — with a plugin API, an LLM chatbot brain 🧠, OIDC account linking 🔐, a tiny web UI 🌐, and a retro-computing soul 🕹️.
+**📋 [Changelog](docs/changelog.md)**
 
 ---
 
 ## ✨ Features
 
-* 🔌 **Plugin Architecture** — drop-in plugins with their own commands, widgets, navbar links and user handlers
-* 🧠 **LLM Chatbot** — optional OpenAI-backed conversation plugin, resettable context, DM-aware
-* 👥 **OIDC Login** — log in, log out, and link your Discord account to a local account
-* 🧱 **Shared Storage API** — every plugin gets a persistent store out of the box
-* 🛰️ **Discord-native** — slash commands, DMs, registration-by-DM flows
-* 🎨 **Mustache-rendered web UI** — for the bits Discord can't do
-* 📦 **pnpm workspaces** — tidy, fast, reproducible installs
+- 🔌 **Plugin Architecture** — drop-in plugins with their own commands, widgets, navbar links, and user handlers
+- 🧠 **LLM Chatbot** — optional OpenAI-backed conversation plugin, resettable context, DM-aware
+- 👥 **OIDC Login** — log in, log out, and link your Discord account to a local account
+- 🧱 **Shared Storage API** — every plugin gets a persistent store out of the box
+- 🛰️ **Discord-native** — slash commands, DMs, registration-by-DM flows
+- 🎨 **Mustache-rendered Web UI** — for the bits Discord can't do
+- 📦 **pnpm workspaces** — tidy, fast, reproducible installs
 
 ## 🧩 Bundled Plugins
 
 | Plugin | What it does |
-| ------ | ------------ |
+|--------|--------------|
 | `org.xalior.chatbot` 💬 | LLM chat plugin — talks back, remembers, can reset |
 | `org.xalior.commands` 🧰 | Core slash-command handlers |
 | `org.xalior.supportbot` 🆘 | Support-channel helper |
 | `org.xalior.ping` 🏓 | The obligatory `ping` / `pong` |
 | `org.xalior.example` 📖 | Minimal reference plugin — copy this to start your own |
 
-## 🚀 Getting Started
+## 🚀 Quick Start
 
 ```bash
-# 1. Clone
-git clone git@github.com:Xalior/sir_clive_sinclairbot.git
+# Clone and install (pnpm only — enforced via preinstall)
+git clone https://github.com/Xalior/sir_clive_sinclairbot.git
 cd sir_clive_sinclairbot
-
-# 2. Install (pnpm only — enforced via preinstall)
 pnpm install
 
-# 3. Configure
+# Configure
 cp env.sample .env
-#   BOT_TOKEN="..."      # your Discord bot token
-#   OPENAI_TOKEN="..."   # only if you want the chatbot plugin
-#   CACHE_URL="mem://"   # or redis://... for persistence
+# …then edit .env (see Configuration below)
 
-# 4. Run
+# Run
 pnpm dev        # hot-reloading dev mode
 pnpm start      # plain run
 pnpm build      # type-check only
 pnpm test       # WebdriverIO test suite
 ```
 
-## 📜 Version History
+## ⚙️ Configuration
 
-### v0.0.8 — 👥 *Who are you again?*
-OIDC client: login, logout, and link your Discord account to a local account.
+All config lives in `.env` — copy `env.sample` and edit.
 
-### v0.0.7 — ❕ *Have you tried turning it off and on again?*
-LLM Chatbot plugin can now reset its context and help users.
+| Variable | Default | Description |
+|----------|---------|-------------|
+| `BOT_TOKEN` | _(required)_ | Your Discord bot token |
+| `OPENAI_TOKEN` | _(optional)_ | OpenAI key — only needed for the chatbot plugin |
+| `CACHE_URL` | `mem://` | Storage backend — `mem://` (ephemeral) or `redis://…` |
 
-### v0.0.6 — 🤖 *It talks back!*
-LLM Chatbot plugin lands (still on the unstable plugin API).
+### 🔐 Discord Permissions
 
-### v0.0.5 — 🧱 *Bricks and mortar*
-Switched to `pnpm`. Added the shared storage API for plugins.
+The bot needs OAuth2 scopes for slash commands, DM messaging, and member management. See [`docs/discord_oauth2_perms.png`](docs/discord_oauth2_perms.png) for the exact set of toggles.
 
-### v0.0.4 — 🤯 *Actually useable*
-Publicly usable, with example config, more plugins, and some docs!
+## 🧪 Testing
 
-### v0.0.3 — 🧠 *Plugged in*
-First version of the Plugin interface, with simple plugins.
-
-### v0.0.2 — 🤖 *Tidy up, tidy up*
-Refactor into something a bit neater. Added DM-to-LLM.
-
-### v0.0.1 — 🧠 *Hello world*
-Initial bot — reproduced the original PHP functions via open-webui.
-
-> 🧠 *Releases marked with a brain were primarily written by the bot itself, via prompting its own LLM. Treat accordingly.* 😉
+```bash
+pnpm test       # runs WebdriverIO
+pnpm wdio       # same thing, explicit
+```
 
 ## 🐛 Bugs & Suggestions
 
 Please report crashing bugs **with steps to reproduce** over at the [issues page](https://github.com/Xalior/sir_clive_sinclairbot/issues).
 
-## 📄 License
+## 📜 License
 
 AGPL-3.0 — see [LICENSE](LICENSE).
 

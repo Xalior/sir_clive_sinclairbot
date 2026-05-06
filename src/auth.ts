@@ -24,7 +24,49 @@ export interface Claim {
     updated_at: number;
 }
 
+export interface Verification {
+    verification_id: string;
+    discord_id: string;
+}
+
 export const Claims = new PersistanceAdapter<Claim>('claims');
+export const Verifications = new PersistanceAdapter<Verification>('verifications');
+
+const csrfSkipPaths: string[] = [];
+const compiledPatternCache = new Map<string, RegExp>();
+
+function globToRegex(pattern: string): RegExp {
+    let body = pattern;
+    let trailingDoubleStar = false;
+    if (body.endsWith('/**')) {
+        body = body.slice(0, -3);
+        trailingDoubleStar = true;
+    }
+    const escape = (s: string) => s.replace(/[.+?^${}()|[\]\\]/g, '\\$&');
+    const parts = body.split('**').map(part => escape(part).replace(/\*/g, '[^/]*'));
+    let regex = parts.join('.*');
+    if (trailingDoubleStar) {
+        regex += '(?:/.*)?';
+    }
+    return new RegExp('^' + regex + '$');
+}
+
+function compilePattern(pattern: string): RegExp {
+    let r = compiledPatternCache.get(pattern);
+    if (r === undefined) {
+        r = globToRegex(pattern);
+        compiledPatternCache.set(pattern, r);
+    }
+    return r;
+}
+
+function matchesAny(path: string, patterns: string[]): boolean {
+    return patterns.some(p => compilePattern(p).test(path));
+}
+
+export function registerCsrfSkipPaths(paths: string[]): void {
+    csrfSkipPaths.push(...paths);
+}
 
 export const setup = async (app: Express) => {
     const provider_url = new URL(env.OIDC_PROVIDER_URL);
@@ -35,7 +77,7 @@ export const setup = async (app: Express) => {
         env.OIDC_CLIENT_SECRET,
     );
 
-    console.log('Discovered issuer:', issuer.serverMetadata());
+    if(env.VERBOSE) console.log('Discovered issuer:', issuer.serverMetadata());
 
     let options: StrategyOptionsWithRequest = {
         config: issuer,
@@ -67,6 +109,7 @@ export const setup = async (app: Express) => {
             }
 
             await Claims.upsert(this_claim.sub, claim);
+            await
 
             verified(null, claim);
         }
@@ -78,12 +121,12 @@ export const setup = async (app: Express) => {
         ignoreMethods: ['GET', 'HEAD', 'OPTIONS', 'PUT', 'DELETE', 'PATCH' ],
     });
 
+    // Auth's own CSRF-skip entry — registered through the same mechanism plugins use.
+    registerCsrfSkipPaths(['/callback/**']);
+
 // Make CSRF token available to all templates
     app.use((req, res, next) => {
-        // Explicit collection of paths to skip CSRF protection
-        if(
-            req.path.startsWith('/callback')
-        ) {
+        if (matchesAny(req.path, csrfSkipPaths)) {
             // @ts-ignore
             req.csrfToken = () => '';
             next();

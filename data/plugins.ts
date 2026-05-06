@@ -3,5 +3,6 @@ export const plugins = [
     'org.xalior.chatbot',
     'org.xalior.ping',
     'org.xalior.example',
-    'org.xalior.commands'
+    'org.xalior.commands',
+    'org.xalior.relay'
 ];

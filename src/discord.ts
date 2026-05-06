@@ -1,23 +1,34 @@
-
-import {Client, GatewayIntentBits, Message, OmitPartialGroupDMChannel, TextChannel} from 'discord.js';
+import {Client, GatewayIntentBits, Message, OmitPartialGroupDMChannel, Partials} from 'discord.js';
 import {ChannelFilterActionReport} from "./channel";
 import {GuildData} from "./guild";
-import {plugins} from "./plugin";
-import {filter} from "./filters";
-import {action} from "./actions";
-import {env} from "./env";
+import PersistanceAdapter from "./persistance_adapter";
 
-// @ts-ignore - we should probably build types for 'guilds'
-import {guilds} from "../data/guilds.js";
 let client_id: string;
 
 const client = new Client({
     intents: [
         GatewayIntentBits.Guilds,
         GatewayIntentBits.GuildMessages,
+        GatewayIntentBits.DirectMessages,
         GatewayIntentBits.MessageContent,
     ],
+    partials: [
+        Partials.Channel,
+        Partials.Message,
+        Partials.Reaction
+    ]
 });
+
+export interface DiscordAccount {
+    claim_id: string;
+    discord_id: string;
+}
+
+export const DiscordAccounts = new PersistanceAdapter<DiscordAccount>('discord_accounts');
+
+export const findDiscordAccount = async (discord_user_id: string) => {
+    return await DiscordAccounts.get(discord_user_id);
+}
 
 class DiscordMessage {
     // passed in at creation
@@ -43,6 +54,6 @@ class DiscordMessage {
 export {client, client_id, DiscordMessage};
 
 client.once('ready', () => {
-    console.info(`Discord Connection Established -- user: ${client.user?.tag}, id: ${client.user?.id}`);
-    client_id = client.user?.id;
+    console.info(`✅ Discord connected -- user: \`${client.user?.tag}\`, id: ${client.user?.id}`);
+    client_id = client.user?.id as string;
 });

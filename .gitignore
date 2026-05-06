@@ -140,3 +140,11 @@ pnpm-workspace.yaml
 docs/discovery
 docs/plans
 *.DS_Store
+
+# On-host docker compose files (stack-dir-flat layout: the checkout IS
+# the stack dir, so the operator's compose file lives alongside the
+# tracked code; never commit it).
+compose.yml
+compose.*.yml
+docker-compose.yml
+docker-compose.*.yml

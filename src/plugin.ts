@@ -5,39 +5,54 @@ import {client, DiscordAccount, DiscordAccounts, DiscordMessage} from "./discord
 import PersistanceAdapter from "./persistance_adapter";
 import {Express} from 'express';
 import {plugins as pluginNamespaces} from "../data/plugins";
-import {Claim, Claims} from "./auth";
+import {Claim, Claims, registerCsrfSkipPaths} from "./auth";
+import {registerPluginEnvSchema, validateAllPluginEnv} from "./plugin_env";
 
 export const plugins: Record<string, Plugin> = {};
 
 // Dynamically load and initialize plugins
 export const load_plugins = async (express_app: Express) => {
+    type ImportedPlugin = { namespace: string; pluginClass: any };
+    const imported: ImportedPlugin[] = [];
+
+    // Pass 1: import every plugin module and collect env schemas.
     for (const namespace of pluginNamespaces) {
         try {
-            // Extract the plugin name from the namespace (last part after dot)
             const pluginName = namespace.split('.').pop() || '';
-            // Create the import path
             const importPath = `../plugins/${namespace}/${pluginName}`;
-
-            // Dynamically import the plugin module
             const pluginModule = await import(importPath);
 
-            // Find the plugin class - it's usually named with 'Plugin' suffix
             const pluginClass = Object.values(pluginModule).find(
                 (exportedItem: any) =>
                     typeof exportedItem === 'function' &&
                     exportedItem.prototype instanceof Plugin
             );
 
-            if (pluginClass as Plugin) {
-                // Initialize the plugin with the Discord client - but this causes errors... so...
-                // @ts-ignore - as types are known instances of Plugin, that's safe enough for us
-                plugins[namespace] = new pluginClass(client, express_app);
-                console.log(await plugins[namespace].onLoaded());
+            if (pluginClass) {
+                imported.push({namespace, pluginClass});
+                if ((pluginClass as typeof Plugin).envSchema) {
+                    registerPluginEnvSchema(namespace, (pluginClass as typeof Plugin).envSchema!);
+                }
             } else {
                 console.error(`No valid plugin class found in ${importPath}`);
             }
         } catch (error) {
             console.error(`🗑️ - Failed to load plugin ${namespace}:`, error);
+        }
+    }
+
+    // Between passes: validate the merged plugin env. Fail-loud, outside try/catch.
+    validateAllPluginEnv();
+
+    // Pass 2: construct each plugin and register its CSRF skip-paths.
+    for (const {namespace, pluginClass} of imported) {
+        try {
+            // @ts-ignore - pluginClass is dynamically resolved
+            plugins[namespace] = new pluginClass(client, express_app);
+            registerCsrfSkipPaths(plugins[namespace].csrfSkipPaths);
+            console.log(await plugins[namespace].onLoaded());
+        } catch (error) {
+            console.error(`🗑️ - Failed to construct plugin ${namespace}:`, error);
         }
     }
 };

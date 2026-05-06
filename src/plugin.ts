@@ -1,5 +1,6 @@
 // plugin.ts
 import {Client} from 'discord.js';
+import {z} from 'zod';
 import {client, DiscordAccount, DiscordAccounts, DiscordMessage} from "./discord";
 import PersistanceAdapter from "./persistance_adapter";
 import {Express} from 'express';
@@ -52,10 +53,13 @@ export function getPlugin(namespace: string): Plugin | undefined {
 }
 
 export abstract class Plugin {
+    static envSchema?: z.ZodObject<any>;
+
     protected _discord_client: Client;
     protected _plugin_name: string;
     persistance: PersistanceAdapter<any>;
     express_app: Express;
+    public csrfSkipPaths: string[] = [];
 
     protected constructor(discord_client: Client, express_app: Express, plugin_name: string) {
         if (this.constructor === Plugin) {

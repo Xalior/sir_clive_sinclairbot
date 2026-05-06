@@ -5,9 +5,15 @@ import { client as discord_client, DiscordMessage } from './discord';
 import { filter } from "./filters";
 import {action} from "./actions";
 import {load_plugins, plugins,} from "./plugin";
-import express, {NextFunction} from 'express';
+import express, {NextFunction, Request, Response} from 'express';
 import cookieParser from 'cookie-parser';
 import session from 'express-session';
+
+declare module 'express-session' {
+    interface SessionData {
+        destination_path?: string;
+    }
+}
 import passport from "passport";
 import {setup as setupAuth} from "./auth"
 import path from "path";
@@ -60,7 +66,7 @@ app.get('/', (req: Request, res: Response, next: NextFunction) => {
             return res.redirect(destinationPath);
         }
         console.log("req.user",req.user);
-        res.send("home to "+ (req.user == undefined ? "anonymous" : req.user.me.email));
+        res.send("home to "+ (req.user == undefined ? "anonymous" : (req.user as any).me.email));
     } catch (error) {
         next(error);
     }

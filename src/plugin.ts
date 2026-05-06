@@ -1,6 +1,6 @@
 // plugin.ts
 import {Client} from 'discord.js';
-import {client, DiscordAccounts, DiscordMessage} from "./discord";
+import {client, DiscordAccount, DiscordAccounts, DiscordMessage} from "./discord";
 import PersistanceAdapter from "./persistance_adapter";
 import {Express} from 'express';
 import {plugins as pluginNamespaces} from "../data/plugins";
@@ -112,12 +112,12 @@ export abstract class Plugin {
         return "";
     }
 
-    protected async getDiscordUser(discord_user_id: string): Promise<DiscordUser | undefined> {
+    protected async getDiscordUser(discord_user_id: string): Promise<DiscordAccount | undefined> {
         console.log("getDiscordUser: ", discord_user_id);
         return DiscordAccounts.get(discord_user_id);
     }
 
-    protected async getClaim(claim_id: string): Promise<Claim> {
+    protected async getClaim(claim_id: string): Promise<Claim | undefined> {
         return Claims.get(claim_id);
     }
 

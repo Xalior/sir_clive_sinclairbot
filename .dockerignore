@@ -1,0 +1,16 @@
+node_modules
+dist
+.git
+data
+docs
+test
+*.log
+.env*
+compose.yml
+compose.*.yml
+docker-compose.yml
+docker-compose.*.yml
+.idea
+.vscode
+.DS_Store
+**/.DS_Store

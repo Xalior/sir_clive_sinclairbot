@@ -74,3 +74,5 @@ AGPL-3.0 — see [LICENSE](LICENSE).
 ---
 
 <p align="center">Made with ☕, 🕹️, and a deep and abiding love for the ZX Spectrum Next.</p>
+
+<p>The Sir. is short for Circuit.</p>

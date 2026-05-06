@@ -2,6 +2,8 @@ import {Plugin} from '../../src/plugin.ts';
 import {Client} from 'discord.js';
 import express, {Express} from 'express';
 import {z} from 'zod';
+import {verifyRequest} from './verify.ts';
+import type {RelaySendError, RelaySendSuccess} from './types.ts';
 
 const envSchema = z.object({
     RELAY_SIGNING_KEY: z.string().nonempty("RELAY_SIGNING_KEY must be set"),
@@ -12,19 +14,35 @@ export class RelayPlugin extends Plugin {
     static envSchema = envSchema;
     public csrfSkipPaths = ['/api/relay/**'];
 
-    constructor(discord_client: Client, express_app: Express) {
-        const env = envSchema.parse(process.env);
+    private readonly env: z.infer<typeof envSchema>;
 
+    constructor(discord_client: Client, express_app: Express) {
+        super(discord_client, express_app, 'org.xalior.relay');
+        this.env = envSchema.parse(process.env);
+    }
+
+    public async onLoaded(): Promise<string> {
+        // Route mounting deferred to onLoaded (not pre-super in the constructor as the
+        // commands plugin does) because the handler depends on this.persistance, which
+        // is only initialised by Plugin's constructor.
         const jsonParser = express.json({
             verify: (req, _res, buf) => { (req as any).rawBody = Buffer.from(buf); }
         });
-        express_app.post('/api/relay/v1/send', jsonParser, async (_req, res) => {
-            res.status(501).json({
-                ok: false,
-                error: { code: 'not_implemented', message: 'Relay handler stub' }
+        this.express_app.post('/api/relay/v1/send', jsonParser, async (req, res) => {
+            const result = await verifyRequest(req.headers, req.body, (req as any).rawBody, {
+                signingKey: this.env.RELAY_SIGNING_KEY,
+                clockSkew: this.env.RELAY_CLOCK_SKEW,
+                persistance: this.persistance,
             });
+            if (!result.ok) {
+                return res.status(result.status).json({
+                    ok: false,
+                    error: { code: result.code, message: result.message },
+                } satisfies RelaySendError);
+            }
+            return res.status(200).json({ ok: true, message_id: 'stub' } satisfies RelaySendSuccess);
         });
 
-        super(discord_client, express_app, 'org.xalior.relay');
+        return super.onLoaded();
     }
 }

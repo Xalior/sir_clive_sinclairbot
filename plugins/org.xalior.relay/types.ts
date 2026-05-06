@@ -3,7 +3,13 @@ export type RelayErrorCode =
     | 'invalid_body'
     | 'bad_signature'
     | 'stale_timestamp'
-    | 'replayed_nonce';
+    | 'replayed_nonce'
+    | 'channel_not_found'
+    | 'channel_not_text'
+    | 'wrong_guild'
+    | 'forbidden'
+    | 'discord_error'
+    | 'internal';
 
 export interface RelaySendSuccess {
     ok: true;

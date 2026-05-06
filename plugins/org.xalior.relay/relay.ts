@@ -3,6 +3,7 @@ import {Client} from 'discord.js';
 import express, {Express} from 'express';
 import {z} from 'zod';
 import {verifyRequest} from './verify.ts';
+import {deliverMessage} from './deliver.ts';
 import type {RelaySendError, RelaySendSuccess} from './types.ts';
 
 const envSchema = z.object({
@@ -40,7 +41,17 @@ export class RelayPlugin extends Plugin {
                     error: { code: result.code, message: result.message },
                 } satisfies RelaySendError);
             }
-            return res.status(200).json({ ok: true, message_id: 'stub' } satisfies RelaySendSuccess);
+            const delivered = await deliverMessage(this._discord_client, result.req);
+            if (!delivered.ok) {
+                return res.status(delivered.status).json({
+                    ok: false,
+                    error: { code: delivered.code, message: delivered.message },
+                } satisfies RelaySendError);
+            }
+            return res.status(200).json({
+                ok: true,
+                message_id: delivered.message_id,
+            } satisfies RelaySendSuccess);
         });
 
         return super.onLoaded();

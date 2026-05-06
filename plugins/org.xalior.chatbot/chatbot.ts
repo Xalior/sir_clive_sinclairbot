@@ -64,6 +64,11 @@ export class ChatbotPlugin extends Plugin {
                     await this.persistance.find(discord_message.message.author.id) as PriorConversation
                 ) || new PriorConversation();
 
+                prior_conversation.messages.unshift({
+                    role: 'system',
+                    content: `If the question is not in English include translated question and the answer, in English, in your response.`
+                })
+
                 // Store the latest message from the user
                 prior_conversation['messages'].push({
                     role: 'user',

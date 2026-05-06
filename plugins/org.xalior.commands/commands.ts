@@ -1,12 +1,12 @@
 // ping.ts
-import { Plugin } from '../../src/plugin';
-import {client_id, DiscordAccounts, DiscordMessage} from "../../src/discord";
+import { Plugin } from '../../src/plugin.ts';
+import {client_id, DiscordAccounts, DiscordMessage} from "../../src/discord.ts";
 import packageJson from "../../package.json"
 import {Client} from "discord.js";
 import {Express} from "express";
 import fs from "node:fs";
-import {env} from "../../src/env";
-import {ensureAuthenticated, Verification, Verifications} from "../../src/auth";
+import {env} from "../../src/env.ts";
+import {ensureAuthenticated, Verification, Verifications} from "../../src/auth.ts";
 import { v4 as uuidv4 } from 'uuid';
 
 const startup_time = new Date();

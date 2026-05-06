@@ -1,6 +1,6 @@
 {
   "name": "sir_clive_sinclairbot",
-  "version": "0.0.8",
+  "version": "0.0.9",
   "description": "A Discord channel-manager app",
   "main": "src/bot.ts",
   "scripts": {

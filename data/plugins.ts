@@ -4,5 +4,6 @@ export const plugins = [
     'org.xalior.ping',
     'org.xalior.example',
     'org.xalior.commands',
-    'org.xalior.relay'
+    'org.xalior.relay',
+    'org.xalior.honeypot'
 ];

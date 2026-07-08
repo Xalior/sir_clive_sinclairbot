@@ -37,12 +37,32 @@ function formatDuration(ms: number): string {
 
 export class CommandManager extends Plugin {
     constructor(discord_client: Client, express_app: Express) {
+        // Step 1: confirmation page — no state changes on GET. The bind only
+        // happens via the CSRF-protected POST below, so a link/img pointed at
+        // this URL can't silently bind a victim's identity to someone else's
+        // Discord account.
         express_app.get('/u/:uuid', ensureAuthenticated, async (req, res) => {
-            console.log("PARAMS:", req.params.uuid);
-
             const verification_code = await Verifications.get(req.params.uuid);
             if(!verification_code) return res.sendStatus(404);
-            console.log("VERIFICATION CODE:", verification_code);
+
+            res.send(`<!DOCTYPE html>
+<html lang="en">
+<head><meta charset="utf-8"><title>Link your Discord account</title></head>
+<body>
+<h1>Link your Discord account</h1>
+<p>This will link your Discord account to your Sir. Clive Sinclairbot account. Only continue if you requested this with <code>!register</code>.</p>
+<form method="POST" action="/u/${encodeURIComponent(req.params.uuid)}">
+    <input type="hidden" name="_csrf" value="${res.locals.csrfToken}">
+    <button type="submit">Link account</button>
+</form>
+</body>
+</html>`);
+        })
+
+        // Step 2: the actual bind, behind CSRF
+        express_app.post('/u/:uuid', ensureAuthenticated, async (req, res) => {
+            const verification_code = await Verifications.get(req.params.uuid);
+            if(!verification_code) return res.sendStatus(404);
 
             let discord_account = await this.getDiscordUser(verification_code.discord_id);
             if(!discord_account) {
@@ -55,8 +75,8 @@ export class CommandManager extends Plugin {
             discord_account.claim_id = req.user.me.sub;
 
             await DiscordAccounts.upsert(discord_account.discord_id, discord_account);
-            Verifications.destroy(verification_code.verification_id);
-            this._discord_client.users.send(discord_account.discord_id, 'Your discord account has been linked to your Sir.Clive Sinclairbot account.');
+            await Verifications.destroy(verification_code.verification_id);
+            await this._discord_client.users.send(discord_account.discord_id, 'Your discord account has been linked to your Sir.Clive Sinclairbot account.');
 
             return res.send('Account Linked');
         })

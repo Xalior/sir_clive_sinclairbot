@@ -1,8 +1,10 @@
 import Redis from 'ioredis';
 import { env } from "./env";
 
-const cache = new Redis(env.CACHE_URL);
-const DEBUG_ADAPTER = true;
+// Exported so core infrastructure (e.g. the session store) shares this single
+// Redis connection rather than opening its own.
+export const cache = new Redis(env.CACHE_URL);
+const DEBUG_ADAPTER = env.VERBOSE;
 
 class PersistanceAdapter<T> {
     private model: string;
@@ -24,7 +26,7 @@ class PersistanceAdapter<T> {
      * @returns A Promise resolving to the item of type T
      */
     async get(id: string): Promise<T | undefined> {
-        console.log("GET:", this.model, id)
+        if(DEBUG_ADAPTER) console.debug("GET:", this.model, id)
         return await this.find(id);
     }
 
@@ -93,7 +95,7 @@ class PersistanceAdapter<T> {
         const key = this.key(id);
         item = await cache.call('JSON.GET', key);
 
-        console.log("FIND:, ", item, "ID:", this.model)
+        if(DEBUG_ADAPTER) console.debug("FIND:, ", item, "ID:", this.model)
 
         if(typeof item !== 'string') return undefined;
         return JSON.parse(item);

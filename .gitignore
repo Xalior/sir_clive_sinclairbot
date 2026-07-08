@@ -148,3 +148,4 @@ compose.yml
 compose.*.yml
 docker-compose.yml
 docker-compose.*.yml
+credentials.txt

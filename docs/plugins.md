@@ -146,5 +146,6 @@ Save as `plugins/org.example.hello/hello.ts`, append `'org.example.hello'` to `d
 - [chatbot](plugins/chatbot.md) — LLM conversation
 - [commands](plugins/commands.md) — `!help`, `!ping`, `!uptime`, `!version`, `!register`
 - [example](plugins/example.md) — the minimal reference plugin
+- [honeypot](plugins/honeypot.md) — trap channel that mutes whoever posts in it
 - [ping](plugins/ping.md) — counted `!ping` reply
 - [relay](plugins/relay.md) — HMAC-authenticated HTTP endpoint that posts to Discord

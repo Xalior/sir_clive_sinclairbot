@@ -1,7 +1,7 @@
 // claudebot.ts
 import {Plugin} from '../../src/plugin';
 import {client_id, DiscordMessage} from '../../src/discord';
-import {Client} from 'discord.js';
+import {Client, Message} from 'discord.js';
 import {Express} from 'express';
 import {z} from 'zod';
 import * as fs from 'node:fs';
@@ -39,9 +39,37 @@ const DEFAULT_PERSONA = [
 
 const MODEL = 'claude-sonnet-5-5';
 const MAX_RESPONSE_CHARS = 1000;
+const THREAD_TTL_SECONDS = 10 * 24 * 60 * 60;
+const EXPIRED_REPLY = 'That conversation has expired, and I no longer remember it. Tag me to start a new one.';
 
 // Session transcripts live in the data directory, which is the /data mount in the container.
 const CLAUDE_CONFIG_DIR = path.resolve('data', 'claude');
+
+// Stored under msg:<bot reply ID>: the session that produced the reply, the
+// user who owns that session, and the reply's last assistant message.
+interface ReplyEntry {
+    sessionId: string;
+    ownerId: string;
+    assistantUuid?: string;
+}
+
+// Stored under session:<session ID>: the latest bot reply in that session.
+interface SessionEntry {
+    replyId: string;
+}
+
+interface ResumeFrom {
+    sessionId: string;
+    // A branch is a new session that keeps the history up to the assistant message branchAt.
+    branch: boolean;
+    branchAt?: string;
+}
+
+interface Answer {
+    text: string;
+    sessionId: string;
+    assistantUuid?: string;
+}
 
 export class ClaudebotPlugin extends Plugin {
     static envSchema = envSchema;
@@ -90,8 +118,9 @@ export class ClaudebotPlugin extends Plugin {
         };
     }
 
-    private async ask(texts: string[], displayName: string): Promise<{ text: string, sessionId: string }> {
-        let answer: { text: string, sessionId: string } | undefined;
+    private async ask(texts: string[], displayName: string, from?: ResumeFrom): Promise<Answer> {
+        let answer: Answer | undefined;
+        let assistantUuid: string | undefined;
 
         for await (const sdk_message of query({
             prompt: ClaudebotPlugin.prompt(texts),
@@ -102,13 +131,17 @@ export class ClaudebotPlugin extends Plugin {
                 settingSources: [],
                 verbatimPrompts: true,
                 env: this.sdkEnv(),
+                ...(from && {resume: from.sessionId}),
+                ...(from?.branch && {resumeSessionAt: from.branchAt, forkSession: true}),
             },
         })) {
-            if (sdk_message.type === 'result') {
+            if (sdk_message.type === 'assistant' && sdk_message.parent_tool_use_id === null) {
+                assistantUuid = sdk_message.uuid;
+            } else if (sdk_message.type === 'result') {
                 if (sdk_message.subtype !== 'success' || sdk_message.is_error) {
                     throw new Error(`Claude query failed (${sdk_message.subtype}): ${JSON.stringify(sdk_message)}`);
                 }
-                answer = {text: sdk_message.result, sessionId: sdk_message.session_id};
+                answer = {text: sdk_message.result, sessionId: sdk_message.session_id, assistantUuid};
             }
         }
 
@@ -116,18 +149,77 @@ export class ClaudebotPlugin extends Plugin {
         return answer;
     }
 
+    private static displayName(message: Message): string {
+        return message.member?.displayName ?? message.author.displayName;
+    }
+
+    // Every new thread started from a reply gets two messages: the replied-to
+    // message with its author's name, then the new text.
+    private seed(referenced: Message, text: string): string[] {
+        const quoted = this.stripMention(referenced.content);
+        return [
+            quoted ? `${ClaudebotPlugin.displayName(referenced)} wrote:\n${quoted}` : '',
+            text,
+        ].filter((part) => part !== '');
+    }
+
     public async messageCreate(discord_message: DiscordMessage): Promise<void> {
         const message = discord_message.message;
         try {
-            if (!message.mentions.users.has(client_id)) return;
+            const mentioned = message.mentions.users.has(client_id);
+            const repliesToBot = message.reference !== null && message.mentions.repliedUser?.id === client_id;
+            if (!mentioned && !repliesToBot) return;
 
+            const referenced = message.reference
+                ? await message.fetchReference().catch(() => undefined)
+                : undefined;
             const text = this.stripMention(message.content);
-            if (!text) return;
+            const authorId = message.author.id;
 
-            const displayName = message.member?.displayName ?? message.author.displayName;
-            const answer = await this.ask([text], displayName);
+            let texts: string[];
+            let from: ResumeFrom | undefined;
 
-            await message.reply(Array.from(answer.text).slice(0, MAX_RESPONSE_CHARS).join(''));
+            if (referenced && referenced.author.id === client_id) {
+                const entry = await this.persistance.find(`msg:${referenced.id}`) as ReplyEntry | undefined;
+                if (!entry) {
+                    await message.reply(EXPIRED_REPLY);
+                    return;
+                }
+                if (entry.ownerId === authorId) {
+                    // The owner continues the thread from its latest reply, or branches from an older one.
+                    const latest = await this.persistance.find(`session:${entry.sessionId}`) as SessionEntry | undefined;
+                    from = {
+                        sessionId: entry.sessionId,
+                        branch: latest?.replyId !== referenced.id,
+                        branchAt: entry.assistantUuid,
+                    };
+                    texts = [text];
+                } else {
+                    // The system prompt holds the owner's name, so anyone else starts their own thread.
+                    texts = this.seed(referenced, text);
+                }
+            } else if (referenced && mentioned) {
+                texts = this.seed(referenced, text);
+            } else if (mentioned) {
+                texts = [text];
+            } else {
+                return;
+            }
+
+            texts = texts.filter((part) => part !== '');
+            if (texts.length === 0) return;
+
+            const answer = await this.ask(texts, ClaudebotPlugin.displayName(message), from);
+            const reply = await message.reply(Array.from(answer.text).slice(0, MAX_RESPONSE_CHARS).join(''));
+
+            await this.persistance.upsert(`msg:${reply.id}`, {
+                sessionId: answer.sessionId,
+                ownerId: authorId,
+                assistantUuid: answer.assistantUuid,
+            } satisfies ReplyEntry, THREAD_TTL_SECONDS);
+            await this.persistance.upsert(`session:${answer.sessionId}`, {
+                replyId: reply.id,
+            } satisfies SessionEntry, THREAD_TTL_SECONDS);
         } catch (error) {
             console.log(error);
             console.error(`Error replying to message: ${error}`);

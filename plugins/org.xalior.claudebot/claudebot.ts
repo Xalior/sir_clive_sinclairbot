@@ -243,8 +243,8 @@ export class ClaudebotPlugin extends Plugin {
         return message.member?.displayName ?? message.author.displayName;
     }
 
-    // Every new thread started from a reply gets two messages: the replied-to
-    // message with its author's name, then the new text.
+    // A new thread started from a reply opens with two text blocks in one user
+    // message: the replied-to message with its author's name, then the new text.
     private seed(referenced: Message, text: string): string[] {
         const quoted = this.stripMention(referenced.content);
         return [

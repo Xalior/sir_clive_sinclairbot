@@ -39,13 +39,17 @@ const DEFAULT_PERSONA = [
 
 const MODEL = 'claude-sonnet-5-5';
 const MAX_RESPONSE_CHARS = 1000;
-const THREAD_TTL_SECONDS = 10 * 24 * 60 * 60;
+const THREAD_TTL_DAYS = 10;
+const THREAD_TTL_SECONDS = THREAD_TTL_DAYS * 24 * 60 * 60;
 const EXPIRED_REPLY = 'That conversation has expired, and I no longer remember it. Tag me to start a new one.';
 
 const RECEIVED_REACTION = '🤖';
 const THINKING_REACTION = '🤔';
 const WRITING_REACTION = '✍️';
 const ERROR_REACTION = '❌';
+const HELP_REACTION = '🆘';
+
+const HELP_FILE = './plugins/org.xalior.claudebot/responses/help.md';
 
 type Progress = 'thinking' | 'writing';
 
@@ -167,6 +171,24 @@ export class ClaudebotPlugin extends Plugin {
         return content.replace(new RegExp(`<@!?${client_id}>`, 'g'), '').trim();
     }
 
+    // !help goes to several plugins and each answers for itself, so the help
+    // text goes to the author by DM and nothing is posted in the channel.
+    private async help(discord_message: DiscordMessage, text: string): Promise<boolean> {
+        if (text.split(/\s+/)[0].toLowerCase() !== '!help') return false;
+        await discord_message.message.author.send(fs.readFileSync(HELP_FILE, 'utf8'));
+        await discord_message.message.react(HELP_REACTION);
+        return true;
+    }
+
+    public async messageDirectCreate(discord_message: DiscordMessage): Promise<void> {
+        try {
+            await this.help(discord_message, discord_message.message.content.trim());
+        } catch (error) {
+            console.log(error);
+            console.error(`Error sending help: ${error}`);
+        }
+    }
+
     private static async *prompt(texts: string[]): AsyncIterable<SDKUserMessage> {
         yield {
             type: 'user',
@@ -191,6 +213,8 @@ export class ClaudebotPlugin extends Plugin {
                 settingSources: [],
                 verbatimPrompts: true,
                 includePartialMessages: true,
+                // Transcripts expire with the thread entries.
+                settings: {cleanupPeriodDays: THREAD_TTL_DAYS},
                 env: this.sdkEnv(),
                 ...(from && {resume: from.sessionId}),
                 ...(from?.branch && {resumeSessionAt: from.branchAt, forkSession: true}),
@@ -237,10 +261,12 @@ export class ClaudebotPlugin extends Plugin {
             const repliesToBot = message.reference !== null && message.mentions.repliedUser?.id === client_id;
             if (!mentioned && !repliesToBot) return;
 
+            const text = this.stripMention(message.content);
+            if (mentioned && await this.help(discord_message, text)) return;
+
             const referenced = message.reference
                 ? await message.fetchReference().catch(() => undefined)
                 : undefined;
-            const text = this.stripMention(message.content);
             const authorId = message.author.id;
 
             let texts: string[];

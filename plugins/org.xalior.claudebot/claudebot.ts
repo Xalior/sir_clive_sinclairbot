@@ -41,6 +41,7 @@ const MODEL = 'claude-sonnet-5-5';
 const MAX_RESPONSE_CHARS = 1000;
 const THREAD_TTL_DAYS = 10;
 const THREAD_TTL_SECONDS = THREAD_TTL_DAYS * 24 * 60 * 60;
+const LINK_ACCOUNT_REPLY = 'Please link your account first. Send `!register` and follow the link I send you.';
 const EXPIRED_REPLY = 'That conversation has expired, and I no longer remember it. Tag me to start a new one.';
 
 const RECEIVED_REACTION = '🤖';
@@ -145,6 +146,8 @@ interface Answer {
 
 export class ClaudebotPlugin extends Plugin {
     static envSchema = envSchema;
+    // !register, which links a Discord account for the require_account gate, comes from org.xalior.commands.
+    static requires = ['org.xalior.commands'];
 
     private readonly env: z.infer<typeof envSchema>;
 
@@ -266,7 +269,7 @@ export class ClaudebotPlugin extends Plugin {
         ].filter((part) => part !== '');
     }
 
-    public async messageCreate(discord_message: DiscordMessage): Promise<void> {
+    public async messageCreate(discord_message: DiscordMessage, config?: any): Promise<void> {
         const message = discord_message.message;
         let progress: ProgressReactions | undefined;
         try {
@@ -314,6 +317,12 @@ export class ClaudebotPlugin extends Plugin {
 
             texts = texts.filter((part) => part !== '');
             if (texts.length === 0) return;
+
+            // Channels that set require_account: true answer only users with a linked account.
+            if (config?.require_account === true && await this.getDiscordUser(authorId) === undefined) {
+                await message.reply(LINK_ACCOUNT_REPLY);
+                return;
+            }
 
             progress = new ProgressReactions(message);
             await progress.received();

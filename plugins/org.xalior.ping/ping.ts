@@ -3,6 +3,7 @@ import { Plugin } from '../../src/plugin';
 import {DiscordMessage} from "../../src/discord";
 import {Client} from "discord.js";
 import {Express} from "express";
+import {env} from "../../src/env";
 
 export class PingPlugin extends Plugin {
     constructor(discord_client: Client, express_app: Express) {
@@ -22,7 +23,7 @@ export class PingPlugin extends Plugin {
 
             data[guildId].count++;
 
-            console.log(discord_message.message);
+            if(env.VERBOSE) console.log(discord_message.message);
 
             await this.persistance.upsert('pingcounter', data);
 

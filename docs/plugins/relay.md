@@ -1,6 +1,6 @@
 # org.xalior.relay
 
-A single HTTP endpoint that lets a LAN service post a plain-text message into a Discord guild + channel by way of the bot. Authenticated by HMAC-SHA256 with a shared key, with replay protection. No Discord credentials leave the bot host.
+One HTTP endpoint that lets a service on your LAN post a plain-text message to a Discord guild and channel through the bot. The endpoint checks an HMAC-SHA256 signature made with a shared key, and rejects replayed requests. The Discord credentials stay on the bot host.
 
 Source: [`plugins/org.xalior.relay/`](../../plugins/org.xalior.relay/)
 
@@ -24,11 +24,11 @@ Body:
 }
 ```
 
-Both ids must be numeric strings (Discord snowflakes). `content` is between 1 and 2000 characters — that's Discord's hard cap.
+Both IDs must be numeric strings (Discord snowflakes). `content` must be between 1 and 2000 characters. 2000 is Discord's maximum message length.
 
 ## Response
 
-Always JSON. Always one of two shapes:
+The relay handler answers with JSON, in one of these shapes:
 
 ```json
 { "ok": true, "message_id": "1501663540317130802" }
@@ -38,27 +38,27 @@ Always JSON. Always one of two shapes:
 { "ok": false, "error": { "code": "<code>", "message": "<text>" } }
 ```
 
-The success branch returns the Discord snowflake of the posted message. The error branch's `message` carries Discord's own error text verbatim where the failure originates from Discord (permissions, channel resolution, API errors); for caller-side failures it's a short human-readable explanation.
+On success, `message_id` is the Discord snowflake of the posted message. On error, `message` depends on the code. For `forbidden` and `discord_error`, it is Discord's own error text, unchanged. For `internal`, it is the text of the error that occurred. For all other codes, it is a short explanation.
 
 ### Error codes
 
 | Code | Status | Cause |
 |---|---|---|
-| `missing_headers` | 400 | one of the three `X-Relay-*` headers is absent or empty |
-| `invalid_body` | 400 | body fails schema validation (missing field, non-numeric id, content too long, etc.) |
-| `bad_signature` | 401 | computed HMAC didn't match, or the provided signature wasn't valid hex |
+| `missing_headers` | 400 | an `X-Relay-*` header is absent or empty |
+| `invalid_body` | 400 | the body fails schema validation, for example a missing field, a non-numeric ID or content that is too long |
+| `bad_signature` | 401 | the computed HMAC does not match, or the signature is not valid hex |
 | `stale_timestamp` | 401 | `\|now − ts\|` exceeds `RELAY_CLOCK_SKEW` |
-| `replayed_nonce` | 401 | this nonce was used within the active TTL window |
-| `channel_not_found` | 404 | Discord couldn't resolve `channel_id` |
-| `channel_not_text` | 400 | resolved channel isn't text-capable (e.g. voice, forum root) |
-| `wrong_guild` | 400 | the channel doesn't belong to the claimed `guild_id` (DM channels also fall here) |
+| `replayed_nonce` | 401 | a request used this nonce within the TTL window |
+| `channel_not_found` | 404 | Discord cannot find `channel_id` |
+| `channel_not_text` | 400 | the channel is not text-based, for example a forum or a category |
+| `wrong_guild` | 400 | the channel is not in the given `guild_id`, or it is a DM channel |
 | `forbidden` | 403 | Discord returned 50001 (Missing Access) or 50013 (Missing Permissions) |
 | `discord_error` | 502 | any other `DiscordAPIError` |
-| `internal` | 500 | non-Discord throw (network, unexpected) |
+| `internal` | 500 | any error that is not a `DiscordAPIError`, for example a network error |
 
 ## Signing
 
-The canonical string is five lines joined with `\n`, in this order:
+The canonical string is these lines, in this order, joined with `\n`:
 
 ```
 <timestamp>
@@ -68,46 +68,46 @@ The canonical string is five lines joined with `\n`, in this order:
 <sha256(rawBody) as hex>
 ```
 
-`rawBody` is the exact byte sequence of the JSON request body — sign before any reformatting. Compute `HMAC-SHA256(canonical, RELAY_SIGNING_KEY)` and send the result as hex in `X-Relay-Signature`.
+`rawBody` is the exact bytes of the JSON request body. Sign the body before any reformatting. Compute `HMAC-SHA256(canonical, RELAY_SIGNING_KEY)` and send the result as hex in `X-Relay-Signature`.
 
-The check order is: header presence, body shape, HMAC compare, timestamp window, nonce check. HMAC is verified before time and nonce so an attacker without the key can't probe timestamp validity.
+The handler checks, in this order, the headers, the body shape, the HMAC, the timestamp window and the nonce. It checks the HMAC before the timestamp and the nonce, so an attacker without the key cannot learn whether a timestamp is valid.
 
-Comparison is constant-time (`crypto.timingSafeEqual`). Hex decode failures are reported as `bad_signature` — the response intentionally doesn't distinguish "bad hex" from "good hex, wrong value".
+The comparison is constant-time (`crypto.timingSafeEqual`). Invalid hex also gives `bad_signature`. The response does not tell the caller whether the hex was invalid or the value was wrong.
 
 ## Configuration
 
 | Env var | Required | Default | Notes |
 |---|---|---|---|
-| `RELAY_SIGNING_KEY` | yes | — | shared HMAC key. Bot refuses to start without it. |
-| `RELAY_CLOCK_SKEW` | no | 30 | tolerance window in seconds. Requests with `\|now − ts\| > skew` are rejected as `stale_timestamp`. |
+| `RELAY_SIGNING_KEY` | yes | none | Shared HMAC key. The bot does not start without it. |
+| `RELAY_CLOCK_SKEW` | no | 30 | Tolerance window in seconds. The handler rejects a request with `\|now − ts\| > skew` as `stale_timestamp`. |
 
-Both vars are declared on the plugin via `static envSchema`; they are validated centrally at boot and never appear in `src/env.ts`.
+The plugin declares both vars with `static envSchema`. Core validates them at startup. They are not in `src/env.ts`.
 
 ## Replay protection
 
-Each accepted request stores its nonce in Redis with TTL `2 × RELAY_CLOCK_SKEW`. Any second request with the same nonce within that window returns `replayed_nonce`. After the TTL elapses the nonce is reusable — that's the smallest TTL that fully covers the skew window in both directions, by design.
+For each accepted request, the plugin stores the nonce in Redis with a TTL of `2 × RELAY_CLOCK_SKEW`. A second request with the same nonce within that time gets `replayed_nonce`. After the TTL ends, the nonce can be used again. This is the smallest TTL that covers the skew window in both directions.
 
-Senders should generate a fresh random nonce per request (16 random bytes hex-encoded is fine).
+Senders should make a new random nonce for each request. 16 random bytes, hex-encoded, are sufficient.
 
-## Discord-side guarantees
+## Discord checks
 
-The handler verifies that the resolved channel actually belongs to the claimed `guild_id`. A request that names guild A but a channel id from guild B fails with `wrong_guild` rather than silently posting to whichever guild owns the channel. DM channels (no `guildId`) are rejected the same way — DMs aren't in scope for v1.
+The handler checks that the channel is in the given `guild_id`. A request that names guild A and a channel ID from guild B fails with `wrong_guild`. It does not post to the guild that owns the channel. The handler rejects DM channels, which have no `guildId`, in the same way. Version 1 of the API does not support DMs.
 
 ## Quotas and rate limiting
 
-None at the plugin level. discord.js handles its own rate-limit queue; the relay defers to it.
+The plugin has no quotas or rate limits of its own. discord.js has its own rate-limit queue, and the relay uses it.
 
 ## What is not logged
 
-- No console output for any relay request, success or failure.
-- No write to the per-guild `log_channel_id`.
-- No plugin-storage write beyond the nonce store entry itself.
+- The plugin writes no console output for a relay request, whether it succeeds or fails.
+- It writes nothing to the guild's `log_channel_id`.
+- It writes nothing to plugin storage except the nonce entry.
 
-If you need an audit trail, run it on the calling side — the bot is intentionally quiet here.
+If you need an audit trail, keep it on the calling side.
 
-## Example: a minimal Node client
+## A minimal Node client
 
-Save as `relay-send.js` outside the repo:
+Save this as `relay-send.js`, outside the repo:
 
 ```js
 const crypto = require('crypto');

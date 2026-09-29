@@ -95,7 +95,7 @@ export const setup = async (app: Express) => {
             }
 
             const me = await openidClient.fetchUserInfo(issuer, tokens.access_token, this_claim.sub);
-            console.log("openidClient.fetchUserInfo: ", me);
+            if(env.VERBOSE) console.log("openidClient.fetchUserInfo: ", me);
 
             const claim = {
                 access_token: tokens.access_token,
@@ -118,7 +118,6 @@ export const setup = async (app: Express) => {
 // Initialize CSRF protection
     const csrfProtection = csrf({
         cookie: true,
-        ignoreMethods: ['GET', 'HEAD', 'OPTIONS', 'PUT', 'DELETE', 'PATCH' ],
     });
 
     // Auth's own CSRF-skip entry — registered through the same mechanism plugins use.
@@ -194,8 +193,8 @@ const callback = (req: Request, res: Response, next: NextFunction) => {
 };
 
 const me = (req: Request, res: Response, next: NextFunction) => {
-    // console.log("req: ", req.user);
-    res.send(req.user);
+    // Only the profile — never the OAuth token bundle — goes to the browser.
+    res.send((req.user as Claim).me);
 };
 
 const router = Router();

@@ -1,14 +1,14 @@
 # org.xalior.ping
 
-Replies `!ping` with a per-guild pong counter.
+Replies to `!ping` with a count of pongs for the guild.
 
 Source: [`plugins/org.xalior.ping/ping.ts`](../../plugins/org.xalior.ping/ping.ts)
 
 ## Behaviour
 
-When a message arrives whose content is exactly `!ping`, the plugin increments a per-guild counter in its Redis store and replies with `I've ponged N time(s)!`. Anything else is ignored.
+When a message is exactly `!ping`, the plugin adds one to the guild's counter in its Redis store and replies `I've ponged N time(s)!`. It ignores all other messages.
 
-This is a useful smoke for "is the bot reading messages, is its persistence working" — if the counter advances after a restart, Redis is wired correctly.
+Use it to check that the bot reads messages and that storage works. If the counter continues from its old value after a restart, the Redis connection is correct.
 
 ## Configuration
 
@@ -16,8 +16,8 @@ None.
 
 ## Storage
 
-A single key `pingcounter` holding `{ [guildId]: { count } }`. No TTL.
+One key, `pingcounter`, holds `{ [guildId]: { count } }`, with no TTL.
 
 ## Limits
 
-The data shape would grow indefinitely with new guilds. For a reference plugin that's fine; if you copy it into something more serious, consider per-guild keys instead of one fat object.
+The object gets larger with each new guild, with no limit. For a reference plugin this is acceptable. If you copy the plugin for real use, use one key per guild, not one large object.

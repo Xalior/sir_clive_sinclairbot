@@ -8,6 +8,9 @@ import {load_plugins, plugins,} from "./plugin";
 import express, {NextFunction, Request, Response} from 'express';
 import cookieParser from 'cookie-parser';
 import session from 'express-session';
+import { rateLimit } from 'express-rate-limit';
+import { RedisStore } from 'connect-redis';
+import { cache } from './persistance_adapter';
 
 declare module 'express-session' {
     interface SessionData {
@@ -23,9 +26,25 @@ import{env} from './env'
 
 const app = express();
 
+app.set('trust proxy', 1);
+
+// Per-IP rate limit across the whole HTTP surface
+app.use(rateLimit({
+    windowMs: 60 * 1000,
+    limit: 100,
+    standardHeaders: true,
+    legacyHeaders: false,
+}));
+
 app.use(cookieParser());
+// Parse HTML form bodies so CSRF tokens in POSTed forms are readable
+app.use(express.urlencoded({ extended: false }));
 app.use(session({
-    secret: env.SESSION_SECRET || 'session-secret',
+    store: new RedisStore({
+        client: cache,
+        prefix: `${env.HOSTNAME}:sessions:`,
+    }),
+    secret: env.SESSION_SECRET,
     resave: false,
     saveUninitialized: true,
     cookie: {
@@ -36,13 +55,9 @@ app.use(session({
 }));
 app.use(passport.authenticate('session'))
 
-app.set('trust proxy', 1);
-
-// Configure OIDC routes and client
-setupAuth(app);
-
-// Load plugins, as per config file
-load_plugins(app);
+// Configure OIDC routes and client, then load plugins — sequenced so the CSRF
+// middleware is registered before any plugin mounts a route behind it.
+setupAuth(app).then(() => load_plugins(app));
 
 
 app.use('/static', express.static(path.join(__dirname, '../public')));
@@ -65,7 +80,7 @@ app.get('/', (req: Request, res: Response, next: NextFunction) => {
             delete(req.session.destination_path);
             return res.redirect(destinationPath);
         }
-        console.log("req.user",req.user);
+        if(env.VERBOSE) console.log("req.user",req.user);
         res.send("home to "+ (req.user == undefined ? "anonymous" : (req.user as any).me.email));
     } catch (error) {
         next(error);
@@ -104,7 +119,8 @@ discord_client.on('messageCreate', async (discord_message:OmitPartialGroupDMChan
                         await action(incoming, (guild_channel.filters?.all || (required_filters && !banned_filters)) ? guild_channel.pass : guild_channel.fail);
                     } catch (error: any) {
                         try {
-                            await (discord_client.channels.cache.get(incoming.guild_data.log_channel_id) as TextChannel).send(error as string);
+                            // Generic notice only — error detail stays in the server logs below
+                            await (discord_client.channels.cache.get(incoming.guild_data.log_channel_id) as TextChannel).send('⚠️ An internal error occurred while processing a message. See server logs for details.');
                         } finally {
                             console.error(`ERROR: ${error} on ${incoming.message.guildId}.${incoming.message.channelId}:{"${incoming.message.content}"}`);
                         }

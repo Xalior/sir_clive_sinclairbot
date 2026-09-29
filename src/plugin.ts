@@ -41,7 +41,9 @@ export const load_plugins = async (express_app: Express) => {
         }
     }
 
-    // Between passes: validate the merged plugin env. Fail-loud, outside try/catch.
+    // Between passes: check plugin requirements and validate the merged plugin env.
+    // Both fail loud, outside try/catch.
+    checkPluginRequirements(imported);
     validateAllPluginEnv();
 
     // Pass 2: construct each plugin and register its CSRF skip-paths.
@@ -59,6 +61,25 @@ export const load_plugins = async (express_app: Express) => {
 
 
 /**
+ * Stop the bot when an imported plugin requires a plugin namespace that was not
+ * imported. Checks presence only, not load order.
+ */
+function checkPluginRequirements(imported: { namespace: string; pluginClass: typeof Plugin }[]): void {
+    const loaded = new Set(imported.map(({namespace}) => namespace));
+    const missing: string[] = [];
+    for (const {namespace, pluginClass} of imported) {
+        for (const required of pluginClass.requires ?? []) {
+            if (!loaded.has(required)) missing.push(`${namespace} requires ${required}, which is not loaded`);
+        }
+    }
+    if (missing.length > 0) {
+        console.error('❌ Missing plugin requirements:');
+        for (const line of missing) console.error(`  - ${line}`);
+        process.exit(1);
+    }
+}
+
+/**
  * Get plugin by namespace
  * @param namespace The namespace of the plugin to find
  * @returns The plugin instance or undefined if not found
@@ -69,6 +90,8 @@ export function getPlugin(namespace: string): Plugin | undefined {
 
 export abstract class Plugin {
     static envSchema?: z.ZodObject<any>;
+    // Plugin namespaces that must also be in data/plugins.ts for this plugin to load.
+    static requires?: string[];
 
     protected _discord_client: Client;
     protected _plugin_name: string;

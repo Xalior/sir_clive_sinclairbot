@@ -137,8 +137,6 @@ dist
 .idea
 data
 pnpm-workspace.yaml
-docs/discovery
-docs/plans
 *.DS_Store
 
 # On-host docker compose files (stack-dir-flat layout: the checkout IS
@@ -148,3 +146,4 @@ compose.yml
 compose.*.yml
 docker-compose.yml
 docker-compose.*.yml
+credentials.txt

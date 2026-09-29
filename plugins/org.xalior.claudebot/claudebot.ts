@@ -1,7 +1,7 @@
 // claudebot.ts
 import {Plugin} from '../../src/plugin';
 import {client_id, DiscordMessage} from '../../src/discord';
-import {Client, Message} from 'discord.js';
+import {Client, Message, MessageReaction} from 'discord.js';
 import {Express} from 'express';
 import {z} from 'zod';
 import * as fs from 'node:fs';
@@ -42,6 +42,13 @@ const MAX_RESPONSE_CHARS = 1000;
 const THREAD_TTL_SECONDS = 10 * 24 * 60 * 60;
 const EXPIRED_REPLY = 'That conversation has expired, and I no longer remember it. Tag me to start a new one.';
 
+const RECEIVED_REACTION = '🤖';
+const THINKING_REACTION = '🤔';
+const WRITING_REACTION = '✍️';
+const ERROR_REACTION = '❌';
+
+type Progress = 'thinking' | 'writing';
+
 // Session transcripts live in the data directory, which is the /data mount in the container.
 const CLAUDE_CONFIG_DIR = path.resolve('data', 'claude');
 
@@ -63,6 +70,59 @@ interface ResumeFrom {
     // A branch is a new session that keeps the history up to the assistant message branchAt.
     branch: boolean;
     branchAt?: string;
+}
+
+// Shows the bot's progress as reactions on the user's message. The received
+// reaction stays; each progress reaction replaces the one before it. Only the
+// bot's own reactions are removed.
+class ProgressReactions {
+    private readonly message: Message;
+    private progress?: Progress;
+    private reaction?: MessageReaction;
+
+    constructor(message: Message) {
+        this.message = message;
+    }
+
+    private async react(emoji: string): Promise<MessageReaction | undefined> {
+        try {
+            return await this.message.react(emoji);
+        } catch (error) {
+            console.error(`Error reacting to message: ${error}`);
+            return undefined;
+        }
+    }
+
+    private async clear(): Promise<void> {
+        const reaction = this.reaction;
+        this.reaction = undefined;
+        try {
+            await reaction?.users.remove();
+        } catch (error) {
+            console.error(`Error removing reaction: ${error}`);
+        }
+    }
+
+    public async received(): Promise<void> {
+        await this.react(RECEIVED_REACTION);
+    }
+
+    public async step(progress: Progress): Promise<void> {
+        // Thinking shows only before writing starts, and each step shows once.
+        if (this.progress === progress || (progress === 'thinking' && this.progress === 'writing')) return;
+        this.progress = progress;
+        await this.clear();
+        this.reaction = await this.react(progress === 'thinking' ? THINKING_REACTION : WRITING_REACTION);
+    }
+
+    public async done(): Promise<void> {
+        await this.clear();
+    }
+
+    public async failed(): Promise<void> {
+        await this.clear();
+        await this.react(ERROR_REACTION);
+    }
 }
 
 interface Answer {
@@ -118,7 +178,7 @@ export class ClaudebotPlugin extends Plugin {
         };
     }
 
-    private async ask(texts: string[], displayName: string, from?: ResumeFrom): Promise<Answer> {
+    private async ask(texts: string[], displayName: string, from: ResumeFrom | undefined, progress: ProgressReactions): Promise<Answer> {
         let answer: Answer | undefined;
         let assistantUuid: string | undefined;
 
@@ -130,12 +190,18 @@ export class ClaudebotPlugin extends Plugin {
                 tools: [],
                 settingSources: [],
                 verbatimPrompts: true,
+                includePartialMessages: true,
                 env: this.sdkEnv(),
                 ...(from && {resume: from.sessionId}),
                 ...(from?.branch && {resumeSessionAt: from.branchAt, forkSession: true}),
             },
         })) {
-            if (sdk_message.type === 'assistant' && sdk_message.parent_tool_use_id === null) {
+            if (sdk_message.type === 'stream_event' && sdk_message.parent_tool_use_id === null
+                && sdk_message.event.type === 'content_block_start') {
+                const block = sdk_message.event.content_block.type;
+                if (block === 'thinking') await progress.step('thinking');
+                if (block === 'text') await progress.step('writing');
+            } else if (sdk_message.type === 'assistant' && sdk_message.parent_tool_use_id === null) {
                 assistantUuid = sdk_message.uuid;
             } else if (sdk_message.type === 'result') {
                 if (sdk_message.subtype !== 'success' || sdk_message.is_error) {
@@ -165,6 +231,7 @@ export class ClaudebotPlugin extends Plugin {
 
     public async messageCreate(discord_message: DiscordMessage): Promise<void> {
         const message = discord_message.message;
+        let progress: ProgressReactions | undefined;
         try {
             const mentioned = message.mentions.users.has(client_id);
             const repliesToBot = message.reference !== null && message.mentions.repliedUser?.id === client_id;
@@ -209,8 +276,12 @@ export class ClaudebotPlugin extends Plugin {
             texts = texts.filter((part) => part !== '');
             if (texts.length === 0) return;
 
-            const answer = await this.ask(texts, ClaudebotPlugin.displayName(message), from);
+            progress = new ProgressReactions(message);
+            await progress.received();
+
+            const answer = await this.ask(texts, ClaudebotPlugin.displayName(message), from, progress);
             const reply = await message.reply(Array.from(answer.text).slice(0, MAX_RESPONSE_CHARS).join(''));
+            await progress.done();
 
             await this.persistance.upsert(`msg:${reply.id}`, {
                 sessionId: answer.sessionId,
@@ -223,6 +294,7 @@ export class ClaudebotPlugin extends Plugin {
         } catch (error) {
             console.log(error);
             console.error(`Error replying to message: ${error}`);
+            await progress?.failed();
         }
     }
 }

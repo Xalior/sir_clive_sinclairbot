@@ -61,6 +61,26 @@ When the reply is posted, the plugin removes the progress reaction, so only 🤖
 
 There is no command to start a new conversation. A new mention starts a new thread.
 
+## Channel config
+
+A channel turns the plugin on in `guilds.js` under `pass.plugin`, with either `true` or an object:
+
+```js
+pass: {
+    plugin: {
+        'org.xalior.claudebot': { require_account: true },
+    },
+},
+```
+
+| Field | Default | Effect |
+|---|---|---|
+| `require_account` | off | When `true`, the bot answers only users who have linked their Discord account with `!register`. Any other value, or a config of `true`, leaves this off. |
+
+With `require_account: true`, a user with no linked account gets a reply that tells them to link it with `!register`. The bot does not add reactions and does not call Claude for that message. The check reads only the stored link record, so it does not depend on the user's login session.
+
+`!register` comes from `org.xalior.commands`. The plugin declares `static requires = ['org.xalior.commands']`, so the bot does not start if `org.xalior.commands` is missing from `data/plugins.ts`, even when no channel sets `require_account`. Users can send `!register` to the bot in a DM.
+
 ## Configuration
 
 | Env var | Required | Notes |

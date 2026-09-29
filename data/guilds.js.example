@@ -82,6 +82,21 @@ const guilds = {
                 },
             },
 
+            // #ask-clive: Claude conversation, only for users with a linked account
+            {
+                channel_id: "666666666666",
+                filters: {
+                    all: true
+                },
+                pass: {
+                    plugin: {
+                        "org.xalior.claudebot": {
+                            require_account: true
+                        }
+                    }
+                }
+            },
+
             // #admin
             {
                 channel_id: "555555555555",

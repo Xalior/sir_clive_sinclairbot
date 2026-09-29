@@ -41,7 +41,7 @@ All optional. Override what you need, leave the rest.
 
 ## Extension points
 
-Two declarative slots let plugins ask core for affordances without core ever naming them.
+Declarative slots let plugins ask core for affordances without core ever naming them.
 
 ### `csrfSkipPaths` — bypass CSRF for specific routes
 
@@ -91,15 +91,28 @@ constructor(discord_client: Client, express_app: Express) {
 
 Plugin-specific env vars live in the plugin file, never in [`src/env.ts`](../src/env.ts). If a new var should appear in operator docs, add it to [`docs/env.txt`](env.txt) — that's the only project-level surface.
 
+### `static requires` -- declare required plugins
+
+A plugin that depends on another plugin lists that plugin's namespace on the class:
+
+```ts
+export class MyPlugin extends Plugin {
+    static requires = ['org.xalior.commands'];
+    // ...
+}
+```
+
+After the loader has imported every plugin in [`data/plugins.ts`](../data/plugins.ts), it checks that each namespace in each plugin's `requires` was imported. If one is missing, the bot logs the plugin and the namespace it needs, and exits with code 1 before it constructs any plugin. The check is on presence only: the order of the list in `data/plugins.ts` does not matter.
+
 ## Loader sequence
 
 The loader runs in two passes:
 
 1. **Import every plugin module** named in `data/plugins.ts`. Find the `Plugin`-extending class. If it has a `static envSchema`, register the schema.
-2. **Validate the merged plugin env against `process.env`.** This sits between the passes, fails loud, and is intentionally outside any try/catch.
+2. **Check plugin requirements, then validate the merged plugin env against `process.env`.** Both sit between the passes, fail loud, and are intentionally outside any try/catch.
 3. **Construct each plugin** with `new PluginClass(client, express_app)`. Register the constructed instance's `csrfSkipPaths`. Await `onLoaded()` and log its return.
 
-Errors during import or construction are caught per-plugin and logged with a `🗑️` prefix; the bot continues with the rest. Errors during env validation are not caught — invalid configuration is fatal.
+Errors during import or construction are caught per-plugin and logged with a `🗑️` prefix; the bot continues with the rest. Errors during the requirement check and env validation are not caught -- invalid configuration is fatal.
 
 ## Storage
 

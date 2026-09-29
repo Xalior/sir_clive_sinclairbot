@@ -1,28 +1,28 @@
 # org.xalior.honeypot
 
-Mutes anyone who posts in a designated trap channel. Spam bots scrape the channel list and post everywhere; real users read the pinned explainer and don't. Anyone who posts gets an instant server timeout, and the message is scrubbed.
+Mutes anyone who posts in a trap channel. Spam bots read the channel list and post in every channel. Human users read the pinned message that explains the trap, and do not post. A user who posts gets a server timeout at once. The channel config can also delete the message.
 
 Source: [`plugins/org.xalior.honeypot/honeypot.ts`](../../plugins/org.xalior.honeypot/honeypot.ts)
 
 ## Behaviour
 
-When a message arrives in a channel this plugin is attached to, the author is muted via a Discord member timeout (`communication_disabled_until`). The mute reason is recorded as "Posted in honeypot channel".
+When a message arrives in a channel that uses this plugin, the plugin mutes the author with a Discord member timeout (`communication_disabled_until`). The reason for the mute is "Posted in honeypot channel".
 
-Exemptions and edge cases:
+Exemptions and special cases:
 
-- **Staff are exempt.** Any member holding the *Moderate Members* permission is skipped (and the skip is reported) — a moderator posting in the trap must not self-mute.
+- **Staff are exempt.** The plugin skips any member with the *Moderate Members* permission, and reports the skip. A moderator who posts in the trap does not mute themselves.
 - **Bots never trigger it.** Core drops bot-authored messages before any plugin runs.
-- **A failed mute never throws.** If Discord rejects the timeout (typically role hierarchy: the target's highest role outranks the bot's), the failure is reported and the rest of the action pipeline — `log`, `delete` — still runs.
+- **A failed mute does not throw.** Discord rejects the timeout if, for example, the member's highest role is above the bot's highest role. The plugin reports the failure, and the other channel actions, `log` and `delete`, still run.
 
 ## Configuration
 
-The plugin takes one config parameter, passed per-channel through the plugin action in `data/guilds.js`:
+The plugin takes one config parameter. Set it for each channel in the plugin action in `data/guilds.js`.
 
 | Param | Required | Default | Notes |
 |---|---|---|---|
-| `timeout_minutes` | no | 1440 (1 day) | mute duration; values above Discord's 28-day maximum are clamped |
+| `timeout_minutes` | no | 1440 (1 day) | Length of the mute. The plugin reduces values above Discord's 28-day maximum to 28 days. |
 
-Channel selection, message deletion, and log-channel reporting are not plugin config — they're the standard per-channel entry flags, same as every other plugin:
+Channel selection, message deletion and reports to the log channel are not plugin config. They are the standard fields of a channel entry, as for every other plugin.
 
 ```js
 // #honeypot
@@ -31,22 +31,22 @@ Channel selection, message deletion, and log-channel reporting are not plugin co
     filters: { all: true },
     pass: {
         plugin: { 'org.xalior.honeypot': { timeout_minutes: 1440 } },
-        delete: true,     // scrub the spam
+        delete: true,     // delete the spam
         log: true         // action report to the guild's log channel
     }
 },
 ```
 
-No env vars.
+The plugin has no env vars.
 
 ## Reporting
 
-The plugin appends its outcome (`muted <user> for <n>m`, `<user> is staff, not muted`, or `FAILED to mute <user> — <error>`) to the standard action report, so with `log: true` it lands in the guild's `log_channel_id` alongside the original message and author.
+The plugin adds its result to the standard action report. The result is `muted <user> for <n>m`, `<user> is staff, not muted`, or `FAILED to mute <user> — <error>`. With `log: true`, the report goes to the guild's `log_channel_id`, with the original message and its author.
 
 ## Requirements
 
-- The bot needs the **Moderate Members** (a.k.a. *Timeout Members*) permission in the guild.
-- The trap channel must be visible and postable by `@everyone`. Pin one message explaining that it's a honeypot — humans read pins, spam bots don't.
+- The bot needs the **Moderate Members** permission in the guild. Discord also calls it *Timeout Members*.
+- `@everyone` must be able to see the trap channel and post in it. Pin one message that explains that the channel is a honeypot. Humans read pinned messages, and spam bots do not.
 
 ## Storage
 
@@ -54,4 +54,4 @@ None.
 
 ## Limits
 
-A timeout caps at 28 days — a honeypot catch is a "hold them until a mod decides" measure, not a ban. Members whose highest role outranks the bot's cannot be timed out; those attempts are reported as failures in the log channel.
+A timeout lasts at most 28 days. The honeypot holds a user until a moderator decides what to do. It does not ban. The bot cannot time out a member whose highest role is above the bot's highest role. The plugin reports those attempts as failures in the log channel.

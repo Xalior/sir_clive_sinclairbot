@@ -27,6 +27,7 @@
 | 🏓 | `org.xalior.ping` | Counts pongs per guild — useful smoke for "is storage alive" | [ping](docs/plugins/ping.md) |
 | 📖 | `org.xalior.example` | The smallest viable plugin, for copy-paste | [example](docs/plugins/example.md) |
 | 📡 | `org.xalior.relay` | Signed HTTP → Discord channel post | [relay](docs/plugins/relay.md) |
+| 🍯 | `org.xalior.honeypot` | Trap channel — post in it, get an instant server mute | [honeypot](docs/plugins/honeypot.md) |
 
 Adding or removing a plugin is one line in [`data/plugins.ts`](data/plugins.ts) — see [`docs/plugins.md`](docs/plugins.md) for how the loader picks them up.
 

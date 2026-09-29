@@ -2,6 +2,8 @@ Sir. Clive Sinclairbot Changelog
 
 *WARNING* - releases marked with 🧠 were primarily written by the discord bot itself, via prompting its own large language model, so one is advised to treat accordingly.
 
+Unreleased 🤖 New `org.xalior.claudebot` plugin: Claude conversation through the Claude Agent SDK, with one thread per Discord reply chain, branching, and progress reactions
+
 v0.1.0 🍯 Security-review hardening: full CSRF coverage, Redis-backed sessions, two-step account linking, rate limiting, clean dependency audit. New `org.xalior.honeypot` plugin
 
 v0.0.9 📡 Pluggable CSRF-skip and env-schema registries; new HMAC-signed `org.xalior.relay` plugin; full docs suite

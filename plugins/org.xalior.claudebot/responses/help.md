@@ -1,6 +1,6 @@
 Good day! Here is how to talk to me.
 
-**Start a conversation:** tag me – "@Sir. Clive Sinclairbot" – in the channel, with your question.
+**Start a conversation:** tag me ("@Sir. Clive Sinclairbot") in the channel with your question.
 
 **Continue it:** reply to my answer. You do not need to tag me again. I remember the earlier messages of that conversation.
 

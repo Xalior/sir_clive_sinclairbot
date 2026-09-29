@@ -8,6 +8,8 @@ The current model is **build locally, run on the host**. There is no published i
 
 Inside the container, `/app/data` is a symlink to `/data`. Mount a host directory at `/data` and the bot's runtime data (notably `data/plugins.ts`, the per-guild config, any other state) is preserved across rebuilds.
 
+The `org.xalior.claudebot` plugin sets `CLAUDE_CONFIG_DIR` to `/app/data/claude` for Claude Code, so its session transcripts are in `/data/claude` in the mount. Claude Code deletes them after 10 days.
+
 The image exposes port 8443.
 
 ## Build
@@ -86,7 +88,7 @@ The bot speaks plain HTTP on 8443. OAuth callbacks need HTTPS (the OIDC config s
 
 Use `env.sample` as a structural reference, but it is currently shorter than the live core schema. The full set of variables — including the OIDC group, `HOSTNAME`, and any plugin-declared vars like `RELAY_SIGNING_KEY` — is documented in [`env.txt`](env.txt). The bot exits at startup if a required var is missing and logs which one.
 
-A plugin's required env vars are validated centrally before any plugin is constructed: a missing `RELAY_SIGNING_KEY` while `org.xalior.relay` is in [`data/plugins.ts`](../data/plugins.ts) terminates startup with a clear message naming the missing key. Removing the plugin from the list removes the requirement.
+A plugin's required env vars are validated centrally before any plugin is constructed: a missing `RELAY_SIGNING_KEY` while `org.xalior.relay` is in [`data/plugins.ts`](../data/plugins.ts) terminates startup with a clear message naming the missing key. In the same way, `org.xalior.claudebot` needs `ANTHROPIC_API_KEY` or `CLAUDE_CODE_OAUTH_TOKEN`. Removing the plugin from the list removes the requirement.
 
 ## Logs
 

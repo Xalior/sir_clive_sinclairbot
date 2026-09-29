@@ -75,6 +75,8 @@ The bot does not start if neither `ANTHROPIC_API_KEY` nor `CLAUDE_CODE_OAUTH_TOK
 
 All three vars are declared on the plugin with `static envSchema`, and core validates them at startup.
 
+Claude Code runs as a separate process. It does not get a copy of the bot's environment, so it never holds the Discord token or other secrets. It gets only `CLAUDE_CONFIG_DIR`, the Claude credentials that are set, and these variables when they are set: `PATH`, `HOME`, `TMPDIR`, `LANG`, `LC_ALL`, `TZ`, `HTTPS_PROXY`, `HTTP_PROXY`, `NO_PROXY` (and their lowercase forms), `NODE_EXTRA_CA_CERTS` and `SSL_CERT_FILE`. The list is `SDK_ENV_ALLOWLIST` in the source.
+
 ## Storage
 
 Two kinds of entry in the plugin's Redis store. Both expire 10 days after they are written.

@@ -53,6 +53,14 @@ const HELP_FILE = './plugins/org.xalior.claudebot/responses/help.md';
 
 type Progress = 'thinking' | 'writing';
 
+// Variables the Claude Code process may receive from the bot's environment.
+const SDK_ENV_ALLOWLIST = [
+    'PATH', 'HOME', 'TMPDIR', 'LANG', 'LC_ALL', 'TZ',
+    'HTTPS_PROXY', 'https_proxy', 'HTTP_PROXY', 'http_proxy', 'NO_PROXY', 'no_proxy',
+    'NODE_EXTRA_CA_CERTS', 'SSL_CERT_FILE',
+    'ANTHROPIC_API_KEY', 'CLAUDE_CODE_OAUTH_TOKEN',
+];
+
 // Session transcripts live in the data directory, which is the /data mount in the container.
 const CLAUDE_CONFIG_DIR = path.resolve('data', 'claude');
 
@@ -157,12 +165,16 @@ export class ClaudebotPlugin extends Plugin {
         ].join('\n\n');
     }
 
-    // The Claude Code process gets the bot's environment, the transcript
-    // directory, and whichever credentials are set.
-    private sdkEnv(): Record<string, string | undefined> {
-        const sdkEnv: Record<string, string | undefined> = {...process.env, CLAUDE_CONFIG_DIR};
-        for (const key of ['ANTHROPIC_API_KEY', 'CLAUDE_CODE_OAUTH_TOKEN']) {
-            if (!isSet(sdkEnv[key])) delete sdkEnv[key];
+    // The Claude Code process gets a fresh environment built from an allowlist,
+    // never a copy of process.env, so it never holds the bot's other secrets
+    // (Discord token, session and OIDC secrets, other plugins' keys). It gets
+    // what it needs to start and reach the API, the transcript directory, and
+    // whichever Claude credentials are set. Unset and empty values are left out.
+    private sdkEnv(): Record<string, string> {
+        const sdkEnv: Record<string, string> = {CLAUDE_CONFIG_DIR};
+        for (const key of SDK_ENV_ALLOWLIST) {
+            const value = process.env[key];
+            if (isSet(value)) sdkEnv[key] = value as string;
         }
         return sdkEnv;
     }

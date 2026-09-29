@@ -161,6 +161,7 @@ export class ClaudebotPlugin extends Plugin {
         return [
             persona,
             `Keep every response under ${MAX_RESPONSE_CHARS} characters.`,
+            'Answer what was asked, then stop. Ask a follow-up question only when you cannot answer without more information.',
             `You are talking to ${displayName}.`,
         ].join('\n\n');
     }

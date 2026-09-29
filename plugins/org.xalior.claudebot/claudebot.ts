@@ -42,6 +42,7 @@ const MAX_RESPONSE_CHARS = 1000;
 const THREAD_TTL_DAYS = 10;
 const THREAD_TTL_SECONDS = THREAD_TTL_DAYS * 24 * 60 * 60;
 const LINK_ACCOUNT_REPLY = 'Please link your account first. Send `!register` and follow the link I send you.';
+const SUSPENDED_ACCOUNT_REPLY = 'Your linked account is suspended, so I cannot answer you.';
 const EXPIRED_REPLY = 'That conversation has expired, and I no longer remember it. Tag me to start a new one.';
 
 const RECEIVED_REACTION = '🤖';
@@ -256,6 +257,16 @@ export class ClaudebotPlugin extends Plugin {
         return answer;
     }
 
+    // The notice for a user the account gate refuses, or undefined when the user may use the bot.
+    // `suspended` comes from the user info stored at login, so it shows the account as it was then.
+    private async accountRefusal(authorId: string): Promise<string | undefined> {
+        const account = await this.getDiscordUser(authorId);
+        const claim = account && await this.getClaim(account.claim_id);
+        if (!claim) return LINK_ACCOUNT_REPLY;
+        if (claim.me?.suspended) return SUSPENDED_ACCOUNT_REPLY;
+        return undefined;
+    }
+
     private static displayName(message: Message): string {
         return message.member?.displayName ?? message.author.displayName;
     }
@@ -319,11 +330,12 @@ export class ClaudebotPlugin extends Plugin {
             texts = texts.filter((part) => part !== '');
             if (texts.length === 0) return;
 
-            // Channels that set require_account: true answer only users with a linked account.
-            // The notice goes by DM, like !help, and the reaction shows it was sent.
-            if (config?.require_account === true && await this.getDiscordUser(authorId) === undefined) {
+            // Channels that set require_account: true answer only users with a linked account
+            // that is not suspended. The notice goes by DM, like !help, and the reaction shows it was sent.
+            const refusal = config?.require_account === true ? await this.accountRefusal(authorId) : undefined;
+            if (refusal) {
                 await message.react(RECEIVED_REACTION);
-                await message.author.send(LINK_ACCOUNT_REPLY);
+                await message.author.send(refusal);
                 await message.react(LINK_ACCOUNT_REACTION);
                 return;
             }

@@ -12,6 +12,7 @@
 
 - 🔌 **Drop-in plugin architecture** — each plugin gets storage, an Express app, a Discord client, and clean extension points for env vars and CSRF allowlists. → [`docs/plugins.md`](docs/plugins.md)
 - 🧠 **LLM chatbot** with resettable context. → [`docs/plugins/chatbot.md`](docs/plugins/chatbot.md)
+- 🎩 **Claude chatbot** on the Claude Agent SDK: one thread per Discord reply chain, branching, progress reactions, and an optional linked-account gate per channel. → [`docs/plugins/claudebot.md`](docs/plugins/claudebot.md)
 - 👥 **OIDC login + Discord-account linking** through a per-user one-time DM link. → [`docs/plugins/commands.md`](docs/plugins/commands.md)
 - 🛰️ **HMAC relay endpoint** so LAN services can post into Discord without holding bot creds. → [`docs/plugins/relay.md`](docs/plugins/relay.md)
 - 🧱 **Redis-backed storage** namespaced per plugin, with optional TTL.
@@ -23,6 +24,7 @@
 | 🔧 | Plugin | What it does | Doc |
 |---|---|---|---|
 | 💬 | `org.xalior.chatbot` | Mention-driven LLM chat with per-user history | [chatbot](docs/plugins/chatbot.md) |
+| 🎩 | `org.xalior.claudebot` | Claude chat, one thread per reply chain, optional linked-account gate | [claudebot](docs/plugins/claudebot.md) |
 | 🧰 | `org.xalior.commands` | `!help` / `!ping` / `!uptime` / `!version` / `!register` and the OIDC link flow | [commands](docs/plugins/commands.md) |
 | 🏓 | `org.xalior.ping` | Counts pongs per guild — useful smoke for "is storage alive" | [ping](docs/plugins/ping.md) |
 | 📖 | `org.xalior.example` | The smallest viable plugin, for copy-paste | [example](docs/plugins/example.md) |
@@ -39,7 +41,8 @@ cd sir_clive_sinclairbot
 pnpm install                  # pnpm is enforced via preinstall
 
 cp env.sample .env            # then edit; full list in docs/env.txt
-# at minimum set: BOT_TOKEN, OPENAI_TOKEN, CACHE_URL, OIDC_*, HOSTNAME
+# at minimum set: BOT_TOKEN, OPENAI_TOKEN, CACHE_URL, OIDC_*, HOSTNAME,
+# and ANTHROPIC_API_KEY or CLAUDE_CODE_OAUTH_TOKEN for org.xalior.claudebot
 
 pnpm dev                      # hot-reload
 pnpm build                    # tsc --noEmit

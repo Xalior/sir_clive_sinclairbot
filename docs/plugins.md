@@ -157,7 +157,7 @@ Save as `plugins/org.example.hello/hello.ts`, append `'org.example.hello'` to `d
 ## Per-plugin reference
 
 - [chatbot](plugins/chatbot.md) — LLM conversation
-- [claudebot](plugins/claudebot.md) -- Claude conversation through the Claude Agent SDK, one thread per Discord reply chain
+- [claudebot](plugins/claudebot.md) — Claude conversation through the Claude Agent SDK, one thread per Discord reply chain
 - [commands](plugins/commands.md) — `!help`, `!ping`, `!uptime`, `!version`, `!register`
 - [example](plugins/example.md) — the minimal reference plugin
 - [honeypot](plugins/honeypot.md) — trap channel that mutes whoever posts in it

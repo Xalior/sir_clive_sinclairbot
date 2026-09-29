@@ -5,5 +5,6 @@ export const plugins = [
     'org.xalior.example',
     'org.xalior.commands',
     'org.xalior.relay',
-    'org.xalior.honeypot'
+    'org.xalior.honeypot',
+    'org.xalior.claudebot'
 ];

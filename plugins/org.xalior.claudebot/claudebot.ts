@@ -322,6 +322,7 @@ export class ClaudebotPlugin extends Plugin {
             // Channels that set require_account: true answer only users with a linked account.
             // The notice goes by DM, like !help, and the reaction shows it was sent.
             if (config?.require_account === true && await this.getDiscordUser(authorId) === undefined) {
+                await message.react(RECEIVED_REACTION);
                 await message.author.send(LINK_ACCOUNT_REPLY);
                 await message.react(LINK_ACCOUNT_REACTION);
                 return;

@@ -77,7 +77,7 @@ pass: {
 |---|---|---|
 | `require_account` | off | When `true`, the bot answers only users who have linked their Discord account with `!register`. Any other value, or a config of `true`, leaves this off. |
 
-With `require_account: true`, a user with no linked account gets a DM that tells them to link it with `!register`, and the bot reacts to their message with 🔒. Nothing is posted in the channel, and the bot does not call Claude for that message. The check reads only the stored link record, so it does not depend on the user's login session.
+With `require_account: true`, a user with no linked account gets a DM that tells them to link it with `!register`, and the bot reacts to their message with 🤖 and 🔒. Nothing is posted in the channel, and the bot does not call Claude for that message. The check reads only the stored link record, so it does not depend on the user's login session.
 
 `!register` comes from `org.xalior.commands`. The plugin declares `static requires = ['org.xalior.commands']`, so the bot does not start if `org.xalior.commands` is missing from `data/plugins.ts`, even when no channel sets `require_account`. Users can send `!register` to the bot in a DM.
 

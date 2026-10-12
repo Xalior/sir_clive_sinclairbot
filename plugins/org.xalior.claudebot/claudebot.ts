@@ -40,6 +40,9 @@ const DEFAULT_PERSONA = [
 
 const MODEL = 'claude-sonnet-5-5';
 const MAX_RESPONSE_CHARS = 1000;
+// The Discord limit for one message. The cut uses this limit, not MAX_RESPONSE_CHARS,
+// so an answer that runs a little over the length asked for still posts in full.
+const DISCORD_MESSAGE_CHARS = 2000;
 const THREAD_TTL_DAYS = 10;
 const THREAD_TTL_SECONDS = THREAD_TTL_DAYS * 24 * 60 * 60;
 const LINK_ACCOUNT_REPLY = 'Please link your account first. Send `!register` and follow the link I send you.';
@@ -286,6 +289,14 @@ export class ClaudebotPlugin extends Plugin {
         return undefined;
     }
 
+    // The text cut to the Discord limit, measured in UTF-16 units, without splitting a character.
+    private static fitMessage(text: string): string {
+        const chars = Array.from(text);
+        let length = text.length;
+        while (length > DISCORD_MESSAGE_CHARS) length -= (chars.pop() as string).length;
+        return chars.join('');
+    }
+
     private static displayName(message: Message): string {
         return message.member?.displayName ?? message.author.displayName;
     }
@@ -366,7 +377,7 @@ export class ClaudebotPlugin extends Plugin {
             const wikis = wikiTools(wikisSchema.parse(config?.wikis ?? []));
             const channelPrompt = z.string().optional().parse(config?.prompt);
             const answer = await this.ask(texts, ClaudebotPlugin.displayName(message), channelPrompt, from, wikis, progress);
-            const reply = await message.reply(Array.from(answer.text).slice(0, MAX_RESPONSE_CHARS).join(''));
+            const reply = await message.reply(ClaudebotPlugin.fitMessage(answer.text));
             await progress.done();
 
             await this.persistance.upsert(`msg:${reply.id}`, {

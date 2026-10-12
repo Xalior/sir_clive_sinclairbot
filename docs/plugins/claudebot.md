@@ -43,6 +43,8 @@ The default persona is the `DEFAULT_PERSONA` constant in the source. `CLAUDEBOT_
 
 The system prompt asks for less than 1000 characters, but Claude can write more. The plugin posts the answer in full up to 2000 characters, the Discord limit for one message, and cuts a longer answer at 2000. The SDK has no option to limit output tokens, so the system prompt line and this cut are the only limits.
 
+The plugin posts each reply with the `SuppressEmbeds` message flag, so Discord shows the links in a reply without previews.
+
 ### Progress reactions
 
 The bot shows its progress as reactions on the user's message:

@@ -1,7 +1,7 @@
 // claudebot.ts
 import {Plugin} from '../../src/plugin';
 import {client_id, DiscordMessage} from '../../src/discord';
-import {Client, Message, MessageReaction} from 'discord.js';
+import {Client, Message, MessageFlags, MessageReaction} from 'discord.js';
 import {Express} from 'express';
 import {z} from 'zod';
 import * as fs from 'node:fs';
@@ -377,7 +377,11 @@ export class ClaudebotPlugin extends Plugin {
             const wikis = wikiTools(wikisSchema.parse(config?.wikis ?? []));
             const channelPrompt = z.string().optional().parse(config?.prompt);
             const answer = await this.ask(texts, ClaudebotPlugin.displayName(message), channelPrompt, from, wikis, progress);
-            const reply = await message.reply(ClaudebotPlugin.fitMessage(answer.text));
+            // The reply shows its links without previews.
+            const reply = await message.reply({
+                content: ClaudebotPlugin.fitMessage(answer.text),
+                flags: MessageFlags.SuppressEmbeds,
+            });
             await progress.done();
 
             await this.persistance.upsert(`msg:${reply.id}`, {

@@ -8,7 +8,7 @@ Source: [`plugins/org.xalior.claudebot/claudebot.ts`](../../plugins/org.xalior.c
 
 In a guild channel the plugin sees every message that passes the channel filters. It acts on a message that mentions the bot, or that replies to a message from the bot. It removes the bot mention from the text before it sends the text to Claude.
 
-The model is Claude Sonnet 5.5 (`claude-sonnet-5-5`). Claude has no tools, and the SDK loads no settings or `CLAUDE.md` files from disk (`tools: []`, `settingSources: []`). The plugin sends the Discord text exactly as written, so text such as `@file` or `/command` has no special meaning (`verbatimPrompts: true`).
+The model is Claude Sonnet 5.5 (`claude-sonnet-5-5`). Claude has none of the Claude Code built-in tools, and the SDK loads no settings or `CLAUDE.md` files from disk (`tools: []`, `settingSources: []`). The only tools are the wiki tools of the channel, if the channel has wikis (see [Wiki tools](#wiki-tools)). The plugin sends the Discord text exactly as written, so text such as `@file` or `/command` has no special meaning (`verbatimPrompts: true`).
 
 ### Threads
 
@@ -29,9 +29,12 @@ The bot also treats a reply to any other message the bot posted (for example, a 
 
 ### System prompt
 
-The plugin builds the system prompt when a thread starts. It is the persona, then two fixed lines:
+The plugin builds the system prompt when a thread starts. It has these parts, in this order:
 
+- The persona.
+- The channel's `prompt`, if the channel config has one (see [Channel config](#channel-config)). It adds rules to the persona and does not replace it.
 - `Keep every response under 1000 characters.`
+- A line that tells Claude to answer what was asked and then stop, without a closing question or an offer of more help.
 - `You are talking to <display name>.`, with the server display name of the user who starts the thread.
 
 The default persona is the `DEFAULT_PERSONA` constant in the source. `CLAUDEBOT_SYSTEM_PROMPT` replaces it. Claude Code records the system prompt when the thread starts, so a changed persona applies to new threads only. Because the prompt contains the owner's name, a reply from another user starts a new thread.
@@ -48,10 +51,45 @@ The bot shows its progress as reactions on the user's message:
 |---|---|
 | 🤖 | The plugin accepted the message. This reaction stays. |
 | 🤔 | Claude is thinking. |
-| ✍️ | Claude is writing the answer. This replaces 🤔. |
+| 🔎 | Claude is searching a wiki. |
+| 📖 | Claude is reading a wiki page. |
+| ✍️ | Claude is writing the answer. |
 | ❌ | The answer failed. The error is in the bot's log. |
 
-When the reply is posted, the plugin removes the progress reaction, so only 🤖 stays. A simple question can go directly to ✍️. The plugin removes only its own reactions.
+Each progress reaction replaces the one before it. 🔎 and 📖 show when Claude calls a [wiki tool](#wiki-tools), so they show only in a channel with wikis. Any reaction can show more than once, for example 🤔 again after each wiki call. When the reply is posted, the plugin removes the progress reaction, so only 🤖 stays. A simple question can go directly to ✍️. The plugin removes only its own reactions.
+
+### Wiki tools
+
+Each entry in a channel's `wikis` list gives Claude one tool, `mcp__wiki__<id>`. Claude can reach only the wikis in the list, and a channel with no list has no tools. A thread gets the tools of the channel it is in.
+
+| Field | Required | Notes |
+|---|---|---|
+| `id` | yes | The tool name. Lowercase letters, digits and `_` only, and unique in the list. |
+| `name` | yes | The wiki name that Claude sees in the tool description. |
+| `api` | yes | The URL of the wiki's `api.php`. |
+| `about` | no | One line about the wiki's subject. It goes into the tool description, so Claude can choose the right wiki. |
+
+The tool has two actions:
+
+| Action | What it does |
+|---|---|
+| `search` | A title search, then a full text search, through the MediaWiki API `list=search`. Title matches come first. Without `srwhat`, the MediaWiki database search backend matches titles only, so the tool does both searches. |
+| `page` | The page as plain text, through `prop=extracts`, with the page URL. It follows redirects, and it cuts a page at 50,000 characters. |
+
+The wiki must have the TextExtracts extension, which is part of the MediaWiki release. The `page` action fails on a wiki without it. With its default settings, TextExtracts removes all `table` and `div` elements from the text. On a wiki that keeps data in tables or templates, change `$wgExtractsRemoveClasses` in `LocalSettings.php` to keep them. A plain assignment adds to the default list and does not replace it, so set it from `$wgExtensionFunctions`:
+
+```php
+wfLoadExtension( 'TextExtracts' );
+$wgExtensionFunctions[] = static function () {
+    $GLOBALS['wgExtractsRemoveClasses'] = [ 'figure', 'script', 'input', 'style', 'ul.gallery',
+        '.mw-editsection', 'sup.reference', 'ol.references', '.error', '.nomobile',
+        '.noprint', '.noexcerpt', '.sortkey', '.toc' ];
+};
+```
+
+TextExtracts keeps each extract in its cache until the page changes, and a change to this setting does not clear the cache. After a change, purge the pages, for example with `maintenance/run.php purgePage`. Wait until PHP has loaded the new `LocalSettings.php` (the `opcache.revalidate_freq` time) before you purge, or the old setting makes the new extracts.
+
+The plugin sends the wiki requests itself, with the user agent `sir_clive_sinclairbot (+https://github.com/Xalior/sir_clive_sinclairbot)`. The Claude Code process does not connect to the wiki. The plugin checks the `wikis` list when a message comes in. If the list is not valid, the bot reacts with ❌ and writes the error to its log.
 
 ## Commands
 
@@ -68,7 +106,18 @@ A channel turns the plugin on in `guilds.js` under `pass.plugin`, with either `t
 ```js
 pass: {
     plugin: {
-        'org.xalior.claudebot': { require_account: true },
+        'org.xalior.claudebot': {
+            require_account: true,
+            prompt: 'This channel is for ZX Spectrum Next support only. For any other request, reply with one short sentence that says so, and then stop.',
+            wikis: [
+                {
+                    id: 'specnext',
+                    name: 'SpecNext Wiki',
+                    api: 'https://wiki.specnext.dev/api.php',
+                    about: 'ZX Spectrum Next hardware, Next registers, ports, NextZXOS and the Copper.',
+                },
+            ],
+        },
     },
 },
 ```
@@ -76,6 +125,8 @@ pass: {
 | Field | Default | Effect |
 |---|---|---|
 | `require_account` | off | When `true`, the bot answers only users who have linked their Discord account with `!register`. Any other value, or a config of `true`, leaves this off. |
+| `prompt` | none | Text that the plugin adds to the system prompt after the persona, for example rules that keep the bot on the channel topic. See [System prompt](#system-prompt). |
+| `wikis` | none | The MediaWiki sites that Claude can search and read in this channel. Each wiki becomes one tool. See [Wiki tools](#wiki-tools). |
 
 With `require_account: true`, a user with no linked account gets a DM that tells them to link it with `!register`, and the bot reacts to their message with 🤖 and 🔒. A user whose linked account is suspended gets a DM that says so, with the same reactions. The suspended flag comes from the user info that the OpenID provider returned when the user linked the account, so a suspension after that date does not show. Nothing is posted in the channel, and the bot does not call Claude for that message. The check reads the stored link record and the stored claim, so it does not depend on the user's login session or on token expiry.
 

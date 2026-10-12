@@ -91,7 +91,18 @@ const guilds = {
                 pass: {
                     plugin: {
                         "org.xalior.claudebot": {
-                            require_account: true
+                            require_account: true,
+                            // Rules for this channel, added to the system prompt after the persona
+                            prompt: "This channel is for ZX Spectrum Next support only. For any other request, reply with one short sentence that says so, and then stop.",
+                            // Each wiki is one tool that Claude can use to search and read the wiki
+                            wikis: [
+                                {
+                                    id: "specnext",
+                                    name: "SpecNext Wiki",
+                                    api: "https://wiki.specnext.dev/api.php",
+                                    about: "ZX Spectrum Next hardware, Next registers, ports, NextZXOS and the Copper."
+                                }
+                            ]
                         }
                     }
                 }

@@ -7,6 +7,7 @@ import {z} from 'zod';
 import * as fs from 'node:fs';
 import * as path from 'node:path';
 import {query, SDKUserMessage} from '@anthropic-ai/claude-agent-sdk';
+import {wikiAction, wikisSchema, wikiTools, WikiTools} from './wiki';
 
 const isSet = (value?: string): boolean => value !== undefined && value.trim() !== '';
 
@@ -48,13 +49,22 @@ const EXPIRED_REPLY = 'That conversation has expired, and I no longer remember i
 const RECEIVED_REACTION = '🤖';
 const THINKING_REACTION = '🤔';
 const WRITING_REACTION = '✍️';
+const SEARCHING_REACTION = '🔎';
+const READING_REACTION = '📖';
 const ERROR_REACTION = '❌';
 const HELP_REACTION = '🆘';
 const LINK_ACCOUNT_REACTION = '🔒';
 
 const HELP_FILE = './plugins/org.xalior.claudebot/responses/help.md';
 
-type Progress = 'thinking' | 'writing';
+type Progress = 'thinking' | 'searching' | 'reading' | 'writing';
+
+const PROGRESS_REACTIONS: Record<Progress, string> = {
+    thinking: THINKING_REACTION,
+    searching: SEARCHING_REACTION,
+    reading: READING_REACTION,
+    writing: WRITING_REACTION,
+};
 
 // Variables the Claude Code process may receive from the bot's environment.
 const SDK_ENV_ALLOWLIST = [
@@ -123,11 +133,11 @@ class ProgressReactions {
     }
 
     public async step(progress: Progress): Promise<void> {
-        // Thinking shows only before writing starts, and each step shows once.
-        if (this.progress === progress || (progress === 'thinking' && this.progress === 'writing')) return;
+        // A step that is already showing stays.
+        if (this.progress === progress) return;
         this.progress = progress;
         await this.clear();
-        this.reaction = await this.react(progress === 'thinking' ? THINKING_REACTION : WRITING_REACTION);
+        this.reaction = await this.react(PROGRESS_REACTIONS[progress]);
     }
 
     public async done(): Promise<void> {
@@ -159,16 +169,18 @@ export class ClaudebotPlugin extends Plugin {
         fs.mkdirSync(CLAUDE_CONFIG_DIR, {recursive: true});
     }
 
-    private systemPrompt(displayName: string): string {
+    // The channel prompt comes after the persona, so a channel adds rules to the persona and does not replace it.
+    private systemPrompt(displayName: string, channelPrompt: string | undefined): string {
         const persona = isSet(this.env.CLAUDEBOT_SYSTEM_PROMPT)
             ? this.env.CLAUDEBOT_SYSTEM_PROMPT as string
             : DEFAULT_PERSONA;
         return [
             persona,
+            channelPrompt,
             `Keep every response under ${MAX_RESPONSE_CHARS} characters.`,
             'Answer what was asked, then stop. Do not end with a question or an offer of more help, such as "Shall I go deeper?". Ask a question only when you cannot answer without more information.',
             `You are talking to ${displayName}.`,
-        ].join('\n\n');
+        ].filter(isSet).join('\n\n');
     }
 
     // The Claude Code process gets a fresh environment built from an allowlist,
@@ -218,7 +230,8 @@ export class ClaudebotPlugin extends Plugin {
         };
     }
 
-    private async ask(texts: string[], displayName: string, from: ResumeFrom | undefined, progress: ProgressReactions): Promise<Answer> {
+    private async ask(texts: string[], displayName: string, channelPrompt: string | undefined, from: ResumeFrom | undefined,
+                      wikis: WikiTools | undefined, progress: ProgressReactions): Promise<Answer> {
         let answer: Answer | undefined;
         let assistantUuid: string | undefined;
 
@@ -226,8 +239,9 @@ export class ClaudebotPlugin extends Plugin {
             prompt: ClaudebotPlugin.prompt(texts),
             options: {
                 model: MODEL,
-                systemPrompt: this.systemPrompt(displayName),
+                systemPrompt: this.systemPrompt(displayName, channelPrompt),
                 tools: [],
+                ...wikis,
                 settingSources: [],
                 verbatimPrompts: true,
                 includePartialMessages: true,
@@ -245,6 +259,11 @@ export class ClaudebotPlugin extends Plugin {
                 if (block === 'text') await progress.step('writing');
             } else if (sdk_message.type === 'assistant' && sdk_message.parent_tool_use_id === null) {
                 assistantUuid = sdk_message.uuid;
+                // A wiki search or page read shows when Claude calls the tool, before the tool runs.
+                for (const block of sdk_message.message.content) {
+                    const action = block.type === 'tool_use' ? wikiAction(block.name, block.input) : undefined;
+                    if (action) await progress.step(action === 'search' ? 'searching' : 'reading');
+                }
             } else if (sdk_message.type === 'result') {
                 if (sdk_message.subtype !== 'success' || sdk_message.is_error) {
                     throw new Error(`Claude query failed (${sdk_message.subtype}): ${JSON.stringify(sdk_message)}`);
@@ -343,7 +362,10 @@ export class ClaudebotPlugin extends Plugin {
             progress = new ProgressReactions(message);
             await progress.received();
 
-            const answer = await this.ask(texts, ClaudebotPlugin.displayName(message), from, progress);
+            // The channel's wikis, each one a tool. A thread gets the tools of the channel it is in.
+            const wikis = wikiTools(wikisSchema.parse(config?.wikis ?? []));
+            const channelPrompt = z.string().optional().parse(config?.prompt);
+            const answer = await this.ask(texts, ClaudebotPlugin.displayName(message), channelPrompt, from, wikis, progress);
             const reply = await message.reply(Array.from(answer.text).slice(0, MAX_RESPONSE_CHARS).join(''));
             await progress.done();
 

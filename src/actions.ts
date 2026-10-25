@@ -15,14 +15,21 @@ async function message_expand(message: OmitPartialGroupDMChannel<Message>, templ
 
 // Discord can refuse a direct message to the author, depending on the author's
 // own settings. That must not stop the remaining actions, so the error is
-// returned rather than thrown.
+// returned rather than thrown, and reported to the guild's log channel.
 async function direct_message(incoming: DiscordMessage, text: string): Promise<string | undefined> {
     try {
         await incoming.message.author.send(text);
         return undefined;
     } catch (error: any) {
         console.log("Direct Message Error:", error);
-        return `${error?.message ?? error}`;
+        const reason = `${error?.message ?? error}`;
+        try {
+            await (incoming.client.channels.cache.get(incoming.guild_data.log_channel_id) as TextChannel).send(
+                `# Direct Message Failed\n\n<@${incoming.message.author.id}> is blocking direct messages from the bot in some way, so they did not get a message about their post in <#${incoming.message.channelId}>.\n\nDiscord said: ${reason}`);
+        } catch (log_error) {
+            console.log("Direct Message Failure Report Error:", log_error);
+        }
+        return reason;
     }
 }
 

@@ -21,6 +21,7 @@ interface ChannelFilterActions {
 
 class ChannelFilterActionReport {
     message: string | undefined = undefined;
+    message_error: string | undefined = undefined;
     reply: string | undefined = undefined;
     expires: number | undefined = undefined;
     emoji: string | undefined = undefined;

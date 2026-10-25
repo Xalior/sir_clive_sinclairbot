@@ -13,10 +13,24 @@ async function message_expand(message: OmitPartialGroupDMChannel<Message>, templ
     return template;
 }
 
+// Discord can refuse a direct message to the author, depending on the author's
+// own settings. That must not stop the remaining actions, so the error is
+// returned rather than thrown.
+async function direct_message(incoming: DiscordMessage, text: string): Promise<string | undefined> {
+    try {
+        await incoming.message.author.send(text);
+        return undefined;
+    } catch (error: any) {
+        console.log("Direct Message Error:", error);
+        return `${error?.message ?? error}`;
+    }
+}
+
 function action_report(action_report:ChannelFilterActionReport):string {
     let action_log = "";
 
     if(action_report.message) action_log = action_log + `### Direct Message\n ${action_report.message}\n\n`;
+    if(action_report.message_error) action_log = action_log + `### Direct Message Failed\n ${action_report.message_error}\n\n`;
     if(action_report.reply) action_log = action_log + `### Reply\n ${action_report.reply}\n\n`;
     if(action_report.expires) action_log = action_log + `### Delete Scheduled\n ${action_report.expires} seconds\n\n`;
     if(action_report.emoji) action_log = action_log + `### Reaction Appled\n ${action_report.emoji}\n\n`;
@@ -33,8 +47,9 @@ async function action(incoming: DiscordMessage, actions: ChannelFilterActions | 
 
     try {
         if (actions.message) {
-            await incoming.message.author.send(await message_expand(incoming.message, actions.message));
-            incoming.action_report.message = actions.message;
+            const error = await direct_message(incoming, await message_expand(incoming.message, actions.message));
+            if (error) incoming.action_report.message_error = error;
+            else incoming.action_report.message = actions.message;
         }
 
         if (actions.reply) {
@@ -84,10 +99,10 @@ async function action(incoming: DiscordMessage, actions: ChannelFilterActions | 
         if (!incoming.deleted && actions.delete) {
             await incoming.message.delete();
             incoming.deleted = true;
-            await incoming.message.author.send(`Your message was deleted - the original message you sent now follows:
+            incoming.action_report.delete = true;
+            await direct_message(incoming, `Your message was deleted - the original message you sent now follows:
              
              ${incoming.message.content}`);
-            incoming.action_report.delete = true;
         }
     } catch (error) {
         console.log("Action Error:", error);

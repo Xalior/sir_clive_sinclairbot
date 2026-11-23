@@ -32,6 +32,7 @@ The bot also treats a reply to any other message the bot posted (for example, a 
 The plugin builds the system prompt when a thread starts. It has these parts, in this order:
 
 - The persona.
+- Where the thread starts: `You are in the Discord server "<server name>", in the channel #<channel name>.`, then `The channel topic is: <topic>` when the channel has a topic in Discord. A channel with a blank topic gets no topic line.
 - The channel's `prompt`, if the channel config has one (see [Channel config](#channel-config)). It adds rules to the persona and does not replace it.
 - `Keep every response under 1000 characters.`
 - A line that tells Claude to answer what was asked and then stop, without a closing question or an offer of more help.

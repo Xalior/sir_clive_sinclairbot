@@ -174,12 +174,13 @@ export class ClaudebotPlugin extends Plugin {
     }
 
     // The channel prompt comes after the persona, so a channel adds rules to the persona and does not replace it.
-    private systemPrompt(displayName: string, channelPrompt: string | undefined): string {
+    private systemPrompt(displayName: string, place: string | undefined, channelPrompt: string | undefined): string {
         const persona = isSet(this.env.CLAUDEBOT_SYSTEM_PROMPT)
             ? this.env.CLAUDEBOT_SYSTEM_PROMPT as string
             : DEFAULT_PERSONA;
         return [
             persona,
+            place,
             channelPrompt,
             `Keep every response under ${MAX_RESPONSE_CHARS} characters.`,
             'Answer what was asked, then stop. Do not end with a question or an offer of more help, such as "Shall I go deeper?". Ask a question only when you cannot answer without more information.',
@@ -233,7 +234,7 @@ export class ClaudebotPlugin extends Plugin {
         };
     }
 
-    private async ask(texts: string[], displayName: string, channelPrompt: string | undefined, from: ResumeFrom | undefined,
+    private async ask(texts: string[], displayName: string, place: string | undefined, channelPrompt: string | undefined, from: ResumeFrom | undefined,
                       wikis: WikiTools | undefined, progress: ProgressReactions): Promise<Answer> {
         let answer: Answer | undefined;
         let assistantUuid: string | undefined;
@@ -242,7 +243,7 @@ export class ClaudebotPlugin extends Plugin {
             prompt: ClaudebotPlugin.prompt(texts),
             options: {
                 model: MODEL,
-                systemPrompt: this.systemPrompt(displayName, channelPrompt),
+                systemPrompt: this.systemPrompt(displayName, place, channelPrompt),
                 tools: [],
                 ...wikis,
                 settingSources: [],
@@ -295,6 +296,18 @@ export class ClaudebotPlugin extends Plugin {
         let length = text.length;
         while (length > DISCORD_MESSAGE_CHARS) length -= (chars.pop() as string).length;
         return chars.join('');
+    }
+
+    // Where the thread starts: the server, the channel, and the channel topic when it has one.
+    private static place(message: Message): string | undefined {
+        if (!message.guild) return undefined;
+        const channel = message.channel;
+        const name = 'name' in channel ? channel.name : undefined;
+        const topic = 'topic' in channel ? channel.topic ?? undefined : undefined;
+        return [
+            `You are in the Discord server "${message.guild.name}"${name ? `, in the channel #${name}` : ''}.`,
+            isSet(topic) ? `The channel topic is: ${(topic as string).trim()}` : undefined,
+        ].filter(isSet).join(' ');
     }
 
     private static displayName(message: Message): string {
@@ -375,7 +388,7 @@ export class ClaudebotPlugin extends Plugin {
             // The channel's wikis, each one a tool. A thread gets the tools of the channel it is in.
             const wikis = wikiTools(wikisSchema.parse(config?.wikis ?? []));
             const channelPrompt = z.string().optional().parse(config?.prompt);
-            const answer = await this.ask(texts, ClaudebotPlugin.displayName(message), channelPrompt, from, wikis, progress);
+            const answer = await this.ask(texts, ClaudebotPlugin.displayName(message), ClaudebotPlugin.place(message), channelPrompt, from, wikis, progress);
             // The reply shows its links without previews.
             const reply = await message.reply({
                 content: ClaudebotPlugin.fitMessage(answer.text),

@@ -41,7 +41,8 @@ cd sir_clive_sinclairbot
 pnpm install                  # pnpm is enforced via preinstall
 
 cp env.sample .env            # then edit; full list in docs/env.txt
-# at minimum set: BOT_TOKEN, OPENAI_TOKEN, CACHE_URL, OIDC_*, HOSTNAME, SESSION_SECRET,
+# at minimum set: BOT_TOKEN, CACHE_URL, OIDC_*, HOSTNAME, SESSION_SECRET,
+# OPENAI_TOKEN for org.xalior.chatbot,
 # and ANTHROPIC_API_KEY or CLAUDE_CODE_OAUTH_TOKEN for org.xalior.claudebot
 
 pnpm dev                      # hot-reload

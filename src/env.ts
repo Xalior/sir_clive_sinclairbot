@@ -10,7 +10,6 @@ dotenv.config();
 export const env = createEnv({
     server: {
         BOT_TOKEN: z.string().nonempty("Discord App BOT_TOKEN must not be empty"),
-        OPENAI_TOKEN: z.string().nonempty("Openweb-ui or OPENAI_TOKEN must not be empty"),
         CACHE_URL: z.string().nonempty("Redis CACHE_URL must not be empty"),
         OIDC_PROVIDER_URL: z.string().nonempty("Authentication OIDC_PROVIDER_URL must not be empty"),
         OIDC_CLIENT_ID: z.string().nonempty("Authentication OIDC_CLIENT_ID must not be empty"),

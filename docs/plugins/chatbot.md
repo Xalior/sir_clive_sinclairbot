@@ -25,7 +25,7 @@ Both commands work in a DM, and in a guild message that mentions the bot.
 
 | Env var | Required | Notes |
 |---|---|---|
-| `OPENAI_TOKEN` | yes | API token for the OpenAI-compatible endpoint. Core validates it (`src/env.ts`), not the plugin. |
+| `OPENAI_TOKEN` | yes | API token for the OpenAI-compatible endpoint. The plugin declares it with `static envSchema`, and core validates it at startup. |
 
 ## Storage
 

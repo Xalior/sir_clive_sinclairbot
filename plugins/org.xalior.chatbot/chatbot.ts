@@ -3,14 +3,13 @@ import { Plugin } from '../../src/plugin';
 import { client_id, DiscordMessage } from "../../src/discord";
 import {Client} from "discord.js";
 import {Express} from "express";
-import {env} from "../../src/env";
 import OpenAI from 'openai';
+import {z} from 'zod';
 import {ChatCompletionMessageParam} from "openai/src/resources/chat/completions/completions";
 import * as fs from "node:fs";
 
-const client = new OpenAI({
-    baseURL: 'https://norma.xalior.com/api/',
-    apiKey: env.OPENAI_TOKEN
+const envSchema = z.object({
+    OPENAI_TOKEN: z.string().nonempty("Openweb-ui or OPENAI_TOKEN must not be empty"),
 });
 
 class PriorConversation {
@@ -20,8 +19,18 @@ const MAX_CONTEXT_LENGTH = 20;
 const MAX_RESPONSE_TOKENS = 512;
 
 export class ChatbotPlugin extends Plugin {
+    static envSchema = envSchema;
+
+    // Made in the constructor, because core validates OPENAI_TOKEN after it imports
+    // the plugin and before it constructs it.
+    private readonly client: OpenAI;
+
     constructor(discord_client: Client, express_app: Express) {
         super(discord_client, express_app, "org.xalior.chatbot");
+        this.client = new OpenAI({
+            baseURL: 'https://norma.xalior.com/api/',
+            apiKey: envSchema.parse(process.env).OPENAI_TOKEN,
+        });
     }
 
     private async execute_command(discord_message: DiscordMessage) : Promise<boolean> {
@@ -82,7 +91,7 @@ export class ChatbotPlugin extends Plugin {
 
                 let llmMessages:Array<ChatCompletionMessageParam> = Object.assign([], prior_conversation['messages']);
 
-                const completion = await client.chat.completions.create({
+                const completion = await this.client.chat.completions.create({
                     model: 'sir_clive_sinclairbot:latest',
                     messages: llmMessages,
                     max_tokens: MAX_RESPONSE_TOKENS,

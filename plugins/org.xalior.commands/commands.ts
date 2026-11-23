@@ -5,7 +5,7 @@ import packageJson from "../../package.json"
 import {Client} from "discord.js";
 import {Express} from "express";
 import {env} from "../../src/env.ts";
-import {botName, readResponse} from "../../src/responses.ts";
+import {botName, dmAuthor, readResponse} from "../../src/responses.ts";
 import {ensureAuthenticated, Verification, Verifications} from "../../src/auth.ts";
 import { v4 as uuidv4 } from 'uuid';
 
@@ -109,8 +109,7 @@ export class CommandManager extends Plugin {
         const args = content.split(' ').slice(1);
         switch (command) {
             case '!help':
-                await discord_message.message.author.send(readResponse('./plugins/org.xalior.commands/responses/help.md'));
-                await discord_message.message.react('🤖')
+                await dmAuthor(discord_message.message, readResponse('./plugins/org.xalior.commands/responses/help.md'), '🤖');
                 break;
             case "!ping":
                 await discord_message.message.reply('pong!');
@@ -131,11 +130,8 @@ Bugs: ${packageJson.bugs.url}`);
                 // Part 1, the discord user exists...
                 if(discord_user?.claim_id) {
 
-                    // Tell user they already did that, in a private DM
-                    await this._discord_client.users.send(discord_message.message.author.id,`You are already registered, visit https://${env.HOSTNAME}/me to see your account.`);
-
-                    // Confirm we've acted on this message
-                    discord_message.message.react("🔒")
+                    // Tell user they already did that, in a private DM, and confirm we've acted on this message
+                    await dmAuthor(discord_message.message, `You are already registered, visit https://${env.HOSTNAME}/me to see your account.`, "🔒");
                     return;
                 }
                 const verification:Verification = {
@@ -146,11 +142,8 @@ Bugs: ${packageJson.bugs.url}`);
                 // Store the verification code, but only for 15minutes - this should give enough time to join NBN if not a member already
                 await Verifications.upsert(verification.verification_id, verification, 15 * 60);
 
-                // Tell user, in DM, the secret link to complete registration
-                await this._discord_client.users.send(discord_message.message.author.id, `Visit https://${env.HOSTNAME}/u/${verification.verification_id} to complete your registration.`);
-
-                // Confirm we've acted on this message
-                discord_message.message.react("🔓")
+                // Tell user, in DM, the secret link to complete registration, and confirm we've acted on this message
+                await dmAuthor(discord_message.message, `Visit https://${env.HOSTNAME}/u/${verification.verification_id} to complete your registration.`, "🔓");
                 break;
         }
     }

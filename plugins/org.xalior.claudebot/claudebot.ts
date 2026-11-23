@@ -8,7 +8,7 @@ import * as fs from 'node:fs';
 import * as path from 'node:path';
 import {query, SDKUserMessage} from '@anthropic-ai/claude-agent-sdk';
 import {wikiAction, wikisSchema, wikiTools, WikiTools} from './wiki';
-import {readResponse} from '../../src/responses';
+import {dmAuthor, readResponse} from '../../src/responses';
 
 const isSet = (value?: string): boolean => value !== undefined && value.trim() !== '';
 
@@ -58,7 +58,6 @@ const READING_REACTION = '📖';
 const ERROR_REACTION = '❌';
 const HELP_REACTION = '🆘';
 const LINK_ACCOUNT_REACTION = '🔒';
-const DM_REFUSED_REACTION = '❗';
 
 const HELP_FILE = './plugins/org.xalior.claudebot/responses/help.md';
 
@@ -206,25 +205,11 @@ export class ClaudebotPlugin extends Plugin {
         return content.replace(new RegExp(`<@!?${client_id}>`, 'g'), '').trim();
     }
 
-    // Sends the author a DM and reacts with sentReaction. Discord refuses the DM when the
-    // author does not take DMs from the server, and then the reaction is DM_REFUSED_REACTION,
-    // so the author can see that the DM did not arrive.
-    private static async dm(message: Message, text: string, sentReaction: string): Promise<void> {
-        try {
-            await message.author.send(text);
-        } catch (error) {
-            console.error(`DM to ${message.author.id} refused:`, error instanceof Error ? error.message : error);
-            await message.react(DM_REFUSED_REACTION);
-            return;
-        }
-        await message.react(sentReaction);
-    }
-
     // !help goes to several plugins and each answers for itself, so the help
     // text goes to the author by DM and nothing is posted in the channel.
     private async help(discord_message: DiscordMessage, text: string): Promise<boolean> {
         if (text.split(/\s+/)[0].toLowerCase() !== '!help') return false;
-        await ClaudebotPlugin.dm(discord_message.message, readResponse(HELP_FILE), HELP_REACTION);
+        await dmAuthor(discord_message.message, readResponse(HELP_FILE), HELP_REACTION);
         return true;
     }
 
@@ -380,7 +365,7 @@ export class ClaudebotPlugin extends Plugin {
             const refusal = config?.require_account === true ? await this.accountRefusal(authorId) : undefined;
             if (refusal) {
                 await message.react(RECEIVED_REACTION);
-                await ClaudebotPlugin.dm(message, refusal, LINK_ACCOUNT_REACTION);
+                await dmAuthor(message, refusal, LINK_ACCOUNT_REACTION);
                 return;
             }
 

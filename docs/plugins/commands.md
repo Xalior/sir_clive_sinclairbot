@@ -14,6 +14,8 @@ Source: [`plugins/org.xalior.commands/commands.ts`](../../plugins/org.xalior.com
 | `!version` | Replies with the bot's Discord name, the package version, homepage URL, and bug-tracker URL |
 | `!register` | Sends the user a one-time link by DM, valid for 15 minutes, and reacts with `🔓`. The link opens a confirmation page. The user must be logged in, and must confirm to link their Discord account to their local account. If the user is already linked, the bot sends a DM that says so and reacts with `🔒`. |
 
+When Discord refuses a DM, the bot reacts with `❗` in place of `🤖`, `🔓` or `🔒`, and logs the refusal. Discord refuses a DM when the user has turned off direct messages from the server.
+
 ## Web routes
 
 The plugin mounts these routes for the `!register` flow. Both need a logged-in user.

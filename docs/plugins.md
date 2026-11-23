@@ -95,6 +95,8 @@ Put plugin-specific env vars in the plugin file, never in [`src/env.ts`](../src/
 
 The bot's name comes from its Discord profile, so each instance uses its own name. `botName()` in [`src/responses.ts`](../src/responses.ts) returns it once the bot has logged in. `readResponse(file)` reads a response text, such as `responses/help.md`, and puts the name in place of each `<BOT_NAME>`.
 
+`dmAuthor(message, text, sentReaction)` in the same file sends the author of a message a DM, then reacts with `sentReaction`. When Discord refuses the DM, it logs the refusal and reacts with `❗` in its place.
+
 ### `static requires` declares required plugins
 
 A plugin that depends on another plugin lists that plugin's namespace on the class:

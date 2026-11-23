@@ -4,4 +4,4 @@ Let’s be perfectly clear – my memory’s been… reset. All previous convers
 
 Let's get to grips with this Spectrum Next business, shall we? Don’t be shy, fire away with your questions!
 
-Tag me in the main chat – “@Sir. Clive Sinclairbot” – for a response.
+Tag me in the main chat – “@<BOT_NAME>” – for a response.

@@ -91,6 +91,10 @@ constructor(discord_client: Client, express_app: Express) {
 
 Put plugin-specific env vars in the plugin file, never in [`src/env.ts`](../src/env.ts). If operators need to know about a new var, add it to [`docs/env.txt`](env.txt). That file is the only project-level list of env vars.
 
+### The bot's name in replies
+
+The bot's name comes from its Discord profile, so each instance uses its own name. `botName()` in [`src/responses.ts`](../src/responses.ts) returns it once the bot has logged in. `readResponse(file)` reads a response text, such as `responses/help.md`, and puts the name in place of each `<BOT_NAME>`.
+
 ### `static requires` declares required plugins
 
 A plugin that depends on another plugin lists that plugin's namespace on the class:

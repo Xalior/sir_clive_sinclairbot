@@ -4,12 +4,15 @@ import {client_id, DiscordAccounts, DiscordMessage} from "../../src/discord.ts";
 import packageJson from "../../package.json"
 import {Client} from "discord.js";
 import {Express} from "express";
-import fs from "node:fs";
 import {env} from "../../src/env.ts";
+import {botName, readResponse} from "../../src/responses.ts";
 import {ensureAuthenticated, Verification, Verifications} from "../../src/auth.ts";
 import { v4 as uuidv4 } from 'uuid';
 
 const startup_time = new Date();
+
+const escapeHtml = (text: string): string => text
+    .replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
 
 function formatDuration(ms: number): string {
     const seconds = Math.floor((ms / 1000) % 60);
@@ -50,7 +53,7 @@ export class CommandManager extends Plugin {
 <head><meta charset="utf-8"><title>Link your Discord account</title></head>
 <body>
 <h1>Link your Discord account</h1>
-<p>This will link your Discord account to your Sir. Clive Sinclairbot account. Only continue if you requested this with <code>!register</code>.</p>
+<p>This will link your Discord account to your ${escapeHtml(botName())} account. Only continue if you requested this with <code>!register</code>.</p>
 <form method="POST" action="/u/${encodeURIComponent(req.params.uuid)}">
     <input type="hidden" name="_csrf" value="${res.locals.csrfToken}">
     <button type="submit">Link account</button>
@@ -76,7 +79,7 @@ export class CommandManager extends Plugin {
 
             await DiscordAccounts.upsert(discord_account.discord_id, discord_account);
             await Verifications.destroy(verification_code.verification_id);
-            await this._discord_client.users.send(discord_account.discord_id, 'Your discord account has been linked to your Sir.Clive Sinclairbot account.');
+            await this._discord_client.users.send(discord_account.discord_id, `Your discord account has been linked to your ${botName()} account.`);
 
             return res.send('Account Linked');
         })
@@ -106,7 +109,7 @@ export class CommandManager extends Plugin {
         const args = content.split(' ').slice(1);
         switch (command) {
             case '!help':
-                await discord_message.message.author.send(fs.readFileSync('./plugins/org.xalior.commands/responses/help.md', 'utf8'));
+                await discord_message.message.author.send(readResponse('./plugins/org.xalior.commands/responses/help.md'));
                 await discord_message.message.react('🤖')
                 break;
             case "!ping":
@@ -117,7 +120,7 @@ export class CommandManager extends Plugin {
                 await discord_message.message.reply(`Uptime: ${formatDuration(elapsedTime)}`);
                 break;
             case "!version":
-                await discord_message.message.reply(`Sir. Clive Sinclairbot - version ${packageJson.version}
+                await discord_message.message.reply(`${botName()} - version ${packageJson.version}
 More Details: ${packageJson.homepage}
 Bugs: ${packageJson.bugs.url}`);
                 break;

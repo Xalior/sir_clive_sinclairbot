@@ -6,7 +6,7 @@ import {Express} from "express";
 import OpenAI from 'openai';
 import {z} from 'zod';
 import {ChatCompletionMessageParam} from "openai/src/resources/chat/completions/completions";
-import * as fs from "node:fs";
+import {readResponse} from "../../src/responses";
 
 const envSchema = z.object({
     OPENAI_TOKEN: z.string().nonempty("Openweb-ui or OPENAI_TOKEN must not be empty"),
@@ -44,11 +44,11 @@ export class ChatbotPlugin extends Plugin {
         const args = content.split(' ').slice(1);
         switch(command) {
             case '!help':
-                await discord_message.message.author.send(fs.readFileSync('./plugins/org.xalior.chatbot/responses/help.md', 'utf8'));
+                await discord_message.message.author.send(readResponse('./plugins/org.xalior.chatbot/responses/help.md'));
                 await discord_message.message.react('🆘')
                 break;
             case '!new':
-                await discord_message.message.author.send(fs.readFileSync('./plugins/org.xalior.chatbot/responses/new.md', 'utf8'));
+                await discord_message.message.author.send(readResponse('./plugins/org.xalior.chatbot/responses/new.md'));
                 await this.persistance.destroy(discord_message.message.author.id);
                 await discord_message.message.react('0️⃣')
                 break;

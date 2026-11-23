@@ -10,4 +10,4 @@ Here’s a little breakdown of what I can offer:
 * `!help` Displays this message. Useful, eh?
 * `!new` Clears my memory – best for a fresh start.
 
-Tag me in the main chat – “@Sir. Clive Sinclairbot” – for a response.
+Tag me in the main chat – “@<BOT_NAME>” – for a response.

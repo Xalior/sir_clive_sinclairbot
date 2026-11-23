@@ -8,6 +8,7 @@ import * as fs from 'node:fs';
 import * as path from 'node:path';
 import {query, SDKUserMessage} from '@anthropic-ai/claude-agent-sdk';
 import {wikiAction, wikisSchema, wikiTools, WikiTools} from './wiki';
+import {readResponse} from '../../src/responses';
 
 const isSet = (value?: string): boolean => value !== undefined && value.trim() !== '';
 
@@ -208,7 +209,7 @@ export class ClaudebotPlugin extends Plugin {
     // text goes to the author by DM and nothing is posted in the channel.
     private async help(discord_message: DiscordMessage, text: string): Promise<boolean> {
         if (text.split(/\s+/)[0].toLowerCase() !== '!help') return false;
-        await discord_message.message.author.send(fs.readFileSync(HELP_FILE, 'utf8'));
+        await discord_message.message.author.send(readResponse(HELP_FILE));
         await discord_message.message.react(HELP_REACTION);
         return true;
     }

@@ -97,7 +97,7 @@ The plugin sends the wiki requests itself, with the user agent `sir_clive_sincla
 
 | Command | Where | Effect |
 |---|---|---|
-| `!help` | In a DM, or in a guild message that mentions the bot | Sends the author `responses/help.md` by DM and reacts with 🆘. Nothing is posted in the channel. |
+| `!help` | In a DM, or in a guild message that mentions the bot | Sends the author `responses/help.md` by DM and reacts with 🆘, or with ❗ when Discord refuses the DM. Nothing is posted in the channel. |
 
 There is no command to start a new conversation. A new mention starts a new thread.
 
@@ -130,7 +130,7 @@ pass: {
 | `prompt` | none | Text that the plugin adds to the system prompt after the persona, for example rules that keep the bot on the channel topic. See [System prompt](#system-prompt). |
 | `wikis` | none | The MediaWiki sites that Claude can search and read in this channel. Each wiki becomes one tool. See [Wiki tools](#wiki-tools). |
 
-With `require_account: true`, a user with no linked account gets a DM that tells them to link it with `!register`, and the bot reacts to their message with 🤖 and 🔒. A user whose linked account is suspended gets a DM that says so, with the same reactions. The suspended flag comes from the user info that the OpenID provider returned when the user linked the account, so a suspension after that date does not show. Nothing is posted in the channel, and the bot does not call Claude for that message. The check reads the stored link record and the stored claim, so it does not depend on the user's login session or on token expiry.
+With `require_account: true`, a user with no linked account gets a DM that tells them to link it with `!register`, and the bot reacts to their message with 🤖 and 🔒. A user whose linked account is suspended gets a DM that says so, with the same reactions. When Discord refuses the DM, the bot reacts with 🤖 and ❗ in place of 🤖 and 🔒, and logs the refusal. Discord refuses a DM when the user has turned off direct messages from the server. The suspended flag comes from the user info that the OpenID provider returned when the user linked the account, so a suspension after that date does not show. Nothing is posted in the channel, and the bot does not call Claude for that message. The check reads the stored link record and the stored claim, so it does not depend on the user's login session or on token expiry.
 
 `!register` comes from `org.xalior.commands`. The plugin declares `static requires = ['org.xalior.commands']`, so the bot does not start if `org.xalior.commands` is missing from `data/plugins.ts`, even when no channel sets `require_account`. Users can send `!register` to the bot in a DM.
 
